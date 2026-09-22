@@ -20,6 +20,7 @@ El estado es compartido: cualquier integrante puede reportar bloqueos o dependen
 - 🟢 Completo / validado
 - 🟡 En progreso / pendiente de validar
 - 🔴 No iniciado
+- Fase 0 seguridad distingue además: Diseñado / Implementado / Probado / Integrado.
 
 ## Extensión PostgreSQL
 
@@ -38,12 +39,14 @@ El estado es compartido: cualquier integrante puede reportar bloqueos o dependen
 - 🔴 Generación
 - 🔴 Privilegios
 
-## Seguridad
+## Seguridad (Joseph — Fase 0)
 
-- 🟡 Matriz de privilegios
-- 🔴 GRANT/REVOKE
-- 🔴 SECURITY INVOKER/DEFINER
-- 🔴 Pruebas por roles
+- 🟢 Matriz de privilegios (diseñada; probada con fixtures en PG18: MAT-01..07 OK)
+- 🟢 GRANT/REVOKE (diseñados; harness `tests/fixtures/04_grants.sql` probado)
+- 🟡 SECURITY INVOKER/DEFINER (análisis en ADR-011; experimento
+  `tests/security/02_invoker_vs_definer.sql` probado; decisión PENDIENTE DE CIERRE)
+- 🟡 Pruebas por roles (matriz + NEG-01..11 probadas con fixtures; pendiente
+  procedures reales de Joyce y tabla virgen final)
 
 ## Integración
 
@@ -55,15 +58,19 @@ El estado es compartido: cualquier integrante puede reportar bloqueos o dependen
 
 ## Riesgos actuales
 
-1. Definir correctamente la interfaz de READ.
-2. Cerrar el comportamiento de tablas sin PK.
-3. Cerrar la política para procedures existentes.
-4. Definir estrategia de SECURITY INVOKER/DEFINER.
-5. Confirmar la fecha de entrega del enunciado.
+1. Definir correctamente la interfaz de READ (CR-JOYCE-001, BLOQUEADO).
+2. Cerrar el comportamiento de tablas sin PK (CR-JOYCE-003).
+3. Cerrar la política para procedures existentes (CR-JOYCE-004).
+4. Definir estrategia de SECURITY INVOKER/DEFINER (ADR-011 pendiente; CR-JOYCE-005).
+5. Confirmar la fecha de entrega del enunciado (ADR-014, con docente).
+6. Definir vía de aplicación de privilegios desde Python (CR-ARMANDO-001) y
+   validación real con SET ROLE + CALL (CR-ARMANDO-003).
 
 ## Últimas decisiones
 
-Consultar `DECISIONS.md`.
+Consultar `DECISIONS.md` y `COORDINATION_REQUESTS.md` (Fase 0: CR-JOYCE-001..005,
+CR-ARMANDO-001..003). ADR-011 ampliado con análisis, sigue PENDIENTE DE CIERRE.
+`CONTRACTS.md` sin cambios en Fase 0 (no se inventaron firmas).
 
 ## Próximos hitos
 

@@ -119,11 +119,90 @@ Debe definirse además cómo evitar colisiones cuando existan overloads o nombre
 
 ## ADR-011 — SECURITY INVOKER / SECURITY DEFINER
 
-**Estado:** Pendiente de cierre
+**Estado:** Pendiente de cierre — Fase 0 (análisis técnico registrado, decisión NO adoptada)
 
-**Responsable principal de análisis:** agente de Seguridad/Integración/Pruebas.
+**Responsable principal de análisis:** Joseph (Seguridad + Integración + Pruebas).
 
 **Requisito:** la decisión debe justificarse considerando propietario, search_path, privilegios y riesgos.
+
+### Análisis técnico Fase 0 (Joseph, sin cerrar decisión)
+
+1. **Semántica base PostgreSQL:**
+   - `SECURITY INVOKER` (default en FUNCTION/PROCEDURE): el cuerpo se ejecuta con los
+     privilegios del rol que invoca (`CALL`/`SELECT`). El acceso a tablas se chequea
+     contra el invocador. Si el invocador no tiene `SELECT/INSERT/UPDATE/DELETE`
+     sobre la tabla, la operación falla aunque tenga `EXECUTE` sobre el procedure.
+   - `SECURITY DEFINER`: el cuerpo se ejecuta con los privilegios del propietario
+     (`OWNER`) del procedure. El chequeo sobre tablas se hace contra el owner, no
+     contra el invocador. El invocador solo necesita `EXECUTE` (+ `USAGE` sobre el
+     esquema) para operar con privilegios elevados.
+
+2. **Efecto sobre propietario:**
+   - INVOKER: el owner importa poco en ejecución; importa quién llama. Owner
+     recomendado: rol administrador de despliegue (ej. `crud_admin`), nunca un
+     superusuario personal.
+   - DEFINER: el owner es el vector de privilegio. Si el owner es superuser o tiene
+     acceso amplio, cualquier poseedor de `EXECUTE` hereda ese poder dentro del
+     procedure. Obliga a auditar owner + `REVOKE ALL` por defecto + `search_path` fijo.
+
+3. **Efecto sobre permisos de tablas vs EXECUTE:**
+   - INVOKER: modelo de dos llaves — `EXECUTE` sobre cada procedure + permisos
+     directos sobre tablas (`GRANT SELECT/INSERT/... ON TABLE`). Revocar el permiso
+     de tabla bloquea la vía procedure y la vía directa a la vez. Es más verboso
+     pero respeta mínimo privilegio y hace la demo "acceso rechazado" trivial
+     (`42501 insufficient_privilege`).
+   - DEFINER: `EXECUTE` se vuelve la única llave. Permite ocultar la tabla
+     (`REVOKE ALL ON TABLE` + `GRANT EXECUTE ON PROCEDURE`), útil si se quiere
+     exponer solo la API. Riesgo: escalada si el procedure tiene SQL dinámico
+     inyectable o `search_path` manipulable.
+
+4. **GRANT / REVOKE:**
+   - INVOKER exige matriz doble: `GRANT EXECUTE ON PROCEDURE ... TO rol` más
+     `GRANT <op> ON TABLE ... TO rol`. `REVOKE` debe aplicarse en ambos niveles.
+   - DEFINER exige disciplina inversa: `GRANT EXECUTE` selectivo + `REVOKE ALL ON
+     TABLE FROM PUBLIC` y de roles no autorizados. Un `GRANT EXECUTE` olvidado
+     equivale a acceso total a la lógica encapsulada.
+
+5. **search_path:**
+   - Con DEFINER, un `search_path` mutable permite *trojan-horse*: si el procedure
+     referencia `mi_tabla` sin calificar y el atacante crea `mi_tabla` en un esquema
+     anterior del path, el código DEFINER opera sobre el objeto del atacante con
+     privilegios del owner. Mitigación obligatoria: `SET search_path = <esquema_app>,
+     pg_temp` en la definición + nombres calificados + `pg_temp` al final o fuera.
+   - Con INVOKER el riesgo persiste para confusión de objetos, pero no hay elevación
+     de privilegio: el atacante solo se afecta a sí mismo.
+
+6. **SQL dinámico (`EXECUTE format(...)` en PL/pgSQL):**
+   - Regla ADR-013 aplica en ambos modelos: identificadores con `%I`/`quote_ident`,
+     literales con `%L`/`quote_literal` o `USING`. Con DEFINER, una inyección equivale
+     a ejecución como owner → impacto máximo. Nuestra auditoría (harness Fase 0)
+     debe probar quoting con nombres especiales (`"Mi Tabla"`, `"precio$"`, etc.).
+
+7. **Mínimo privilegio:**
+   - INVOKER lo implementa de forma natural (cada rol solo recibe lo que necesita
+     en tabla + procedure).
+   - DEFINER lo viola por diseño salvo que cada procedure re-chequee
+     `session_user`/`current_user` manualmente (ej. `IF NOT pg_has_role(...) THEN
+     RAISE EXCEPTION ...`), lo que duplica lógica de permisos dentro del código.
+
+8. **Experiencia de demostración:**
+   - INVOKER: demo directa — `SET ROLE vendedor; CALL ...` → OK en permitido,
+     `ERROR 42501` en denegado. El profesor ve el enforcement real de PG.
+   - DEFINER: la demo requiere mostrar que el `REVOKE` de `EXECUTE` bloquea, y que
+     sin `EXECUTE` no hay acceso aunque la tabla sea inaccesible. Menos intuitivo
+     para explicar "tres niveles de acceso" si todo pasa por una sola llave.
+
+### Recomendación NO vinculante (pendiente de experimento)
+
+La hipótesis de trabajo es **INVOKER por defecto** por mínimo privilegio y
+demostrabilidad, reservando DEFINER solo para casos justificados (ej. auditoría
+centralizada o API que deba ocultar la tabla base). NO se adopta todavía:
+requiere el experimento comparativo en `tests/security/02_invoker_vs_definer.sql`
+y la respuesta de Joyce (owner que emitirá la extensión) — ver `CR-JOYCE-005`.
+
+**Pregunta a cerrar con el equipo:** ¿los procedures generados fijarán owner +
+`search_path` explícito? ¿La extensión emitirá cláusula `SECURITY` explícita o
+heredará el default?
 
 ---
 
