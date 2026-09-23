@@ -116,7 +116,7 @@ ColumnMetadata
 
 La estructura exacta podrá cambiar, pero debe soportar PK compuesta y columnas autogeneradas desde el diseño.
 
-## 7. Flujo de generación
+## 8. Flujo de generación
 
 ```text
 schema + table + operations
@@ -134,13 +134,13 @@ schema + table + operations
  devolver resultado
 ```
 
-## 7. Seguridad de objetos
+## 9. Seguridad de objetos
 
 Esquema, tabla, columna y nombre de procedimiento son identificadores, no valores ordinarios.
 
 El diseño debe usar mecanismos apropiados para identificar/quotear objetos y parametrizar valores cuando corresponda.
 
-## 8. No objetivos
+## 10. No objetivos
 
 No forman parte del núcleo inicial:
 

@@ -6,11 +6,13 @@
 - Unidad: Unidad de Computación
 - Carrera: Ingeniería en Computación
 - Curso: Bases de Datos II
+- Profesor: Msc. Leonardo Víquez Acuña
 - Proyecto: Primer Proyecto
 - Tema: Generador automático de procedimientos CRUD para PostgreSQL
 - Inicio indicado en el enunciado: viernes 11 de setiembre de 2026, 8:00 a. m.
 - Fecha de entrega indicada en el enunciado: jueves 30 de setiembre de 2021, 8:00 a. m.
-- **Nota:** la fecha de entrega presenta una inconsistencia de año en el enunciado y debe confirmarse con el docente. El equipo no debe asumir 2021 ni 2026 sin confirmación.
+- **Nota:** la fecha de entrega presenta una inconsistencia de año en el enunciado y debe confirmarse con el docente. El equipo no debe asumir 2021 ni 2026 sin confirmación. Ver ADR-014.
+- **Referencia textual:** el enunciado completo está transcrito en `documento_completo.md` (el PDF `PrimerProyecto BasesII.pdf` es escaneado y su texto no es extraíble por herramientas).
 
 ## 2. Objetivo del proyecto
 
@@ -139,7 +141,7 @@ Estas decisiones son de equipo y no deben ser cambiadas unilateralmente por un a
 - Deben cuidarse identificadores, quoting y SQL dinámico seguro.
 - La aplicación debe poder trabajar sobre tablas nuevas no utilizadas durante el desarrollo.
 
-## 9. Regla de colaboración entre agentes
+## 10. Regla de colaboración entre agentes
 
 No optimizar una parte de forma aislada cuando la decisión afecta otro componente.
 
@@ -150,12 +152,14 @@ Toda modificación que cambie una API, contrato, nombre, formato de datos o comp
 3. Registrarse en el archivo de memoria del agente correspondiente.
 4. Marcarse como `REQUIERE COORDINACIÓN` cuando afecte a otro agente.
 
-## 10. Documentos canónicos
+## 11. Documentos canónicos
 
+- `documento_completo.md`: transcripción textual del enunciado (fuente de verdad).
 - `PROJECT_CONTEXT.md`: contexto y reglas generales.
 - `ARCHITECTURE.md`: arquitectura técnica y responsabilidades.
 - `CONTRACTS.md`: interfaces entre componentes.
-- `DECISIONS.md`: decisiones de arquitectura y convenciones.
+- `DECISIONS.md`: decisiones de arquitectura y convenciones (ADR-001..015).
+- `COORDINATION_REQUESTS.md`: solicitudes de coordinación hacia Joyce y Armando.
 - `EXTENSION_MEMORY.md`: memoria técnica del agente de extensión.
 - `PYTHON_MEMORY.md`: memoria técnica del agente Python.
 - `SECURITY_MEMORY.md`: memoria técnica del agente de seguridad/integración/pruebas.

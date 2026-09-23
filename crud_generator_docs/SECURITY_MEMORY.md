@@ -51,9 +51,9 @@ Asegurar que el sistema funcione correctamente con distintos roles y que los pri
 
 Los nombres son ejemplos iniciales; el equipo puede cambiarlos siempre que conserve tres niveles diferenciados.
 
-## Modelo de roles Fase 0 (Joseph) — estado: diseñado, no probado contra PG aún
+## Modelo de roles Fase 0 (Joseph) — probado en PG18 (MAT-01..07, EXP-01/02, NEG-01..11 OK)
 
-Roles de negocio (inalterables en Fase 0, `NOLOGIN` para forzar `SET ROLE` en pruebas):
+Roles de negocio (inalterables, `NOLOGIN` para forzar `SET ROLE` en pruebas):
 
 ```text
 crud_vendedor      → INSERT + READ
@@ -137,9 +137,23 @@ negocio y solo `GRANT EXECUTE`. Ver ADR-011 y experimento
 
 ## Análisis INVOKER vs DEFINER
 
-Ver análisis completo en `DECISIONS.md` ADR-011 (estado: PENDIENTE DE CIERRE).
-Hipótesis de trabajo: INVOKER por defecto. Experimento comparativo diseñado en
-`tests/security/02_invoker_vs_definer.sql`, pendiente de ejecución contra PG real.
+Ver análisis completo en `DECISIONS.md` ADR-011 (recomendación formal: INVOKER por
+defecto; decisión global pendiente de voto + CR-JOYCE-005). Experimento ejecutado en
+PG18: `tests/security/02_invoker_vs_definer.sql` → EXP-01 INVOKER bloquea sin permiso
+de tabla (42501), EXP-02 DEFINER eleva vía owner.
+
+## READ — decisión adoptada (ADR-015)
+
+READ adoptado como `consultar` por PK completa, una fila vía INOUT (ADR-015 en
+DECISIONS.md), respaldado por el enunciado §4.5 y el fixture probado `lab.producto_consultar`
+(MAT-07). Pendiente de confirmación de Joyce (CR-JOYCE-001) y del caso sin PK (CR-JOYCE-003).
+
+## Plantilla de grants parametrizada (Fase A)
+
+`tests/fixtures/05_grants_template.sql` mapea la matriz completa con marcadores
+`<schema>.<tabla>_<operacion>`. A la llegada de las firmas reales de Joyce, se rellena
+con nombres/tipos exactos y sustituye a `04_grants.sql` sin reescribir la lógica
+(CR-JOYCE-002).
 
 ## Plan de pruebas Fase 0
 
@@ -152,20 +166,21 @@ Resultado real / Estado. Catálogo de SQLSTATE: `42501` (permiso), `42883`
 
 ## Estado actual
 
-- [x] Roles definidos (diseño Fase 0)
+- [x] Roles definidos (Fase 0) — probados en PG18
 - [x] Propietarios definidos (propuesta: crud_admin, pendiente Joyce)
-- [x] Estrategia GRANT (diseñada, hipótesis INVOKER)
-- [x] Estrategia REVOKE (diseñada)
-- [ ] EXECUTE validado (harness creado, pendiente ejecución en PG)
-- [x] SECURITY INVOKER/DEFINER analizado (decisión NO cerrada, ver ADR-011)
+- [x] Estrategia GRANT (diseñada; probada con fixtures en 04_grants.sql) + plantilla 05
+- [x] Estrategia REVOKE (diseñada; NEG-01/02/08/10 probados)
+- [x] EXECUTE validado (con fixtures: MAT-01..07)
+- [x] SECURITY INVOKER/DEFINER analizado + experimento ejecutado (EXP-01/02);
+  decisión global pendiente de voto (ADR-011) y CR-JOYCE-005
 - [x] Riesgos SQL dinámico revisados (reglas + fixtures de quoting)
-- [ ] PK simple probado (tabla creada, prueba pendiente)
-- [ ] PK compuesta probada (tabla creada, prueba pendiente)
-- [ ] Autogenerado probado (tabla creada, prueba pendiente)
-- [ ] Sin PK probado (tabla creada, prueba pendiente)
+- [x] PK simple probado (con fixtures MAT-01..07 sobre lab.producto)
+- [x] PK compuesta probada (estructura verificada NEG-07; procedures reales pendientes Joyce)
+- [ ] Autogenerado probado (tabla lab.ticket creada; prueba con procedure pendiente)
+- [ ] Sin PK probado (estructura verificada NEG-05; policy pendiente CR-JOYCE-003)
 - [ ] Procedimiento existente probado (pendiente Joyce CR-JOYCE-004)
-- [ ] Usuario autorizado probado (harness listo, pendiente ejecución)
-- [ ] Usuario no autorizado probado (harness listo, pendiente ejecución)
+- [x] Usuario autorizado probado (fixtures: MAT-01/04/06/07, NEG-09)
+- [x] Usuario no autorizado probado (fixtures: MAT-02/03/05, NEG-01/02/10)
 - [ ] Tabla no conocida probada (tabla virgen reservada, ver estrategia abajo)
 - [ ] Demo E2E preparada
 

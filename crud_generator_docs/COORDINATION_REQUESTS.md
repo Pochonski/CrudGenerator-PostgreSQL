@@ -10,46 +10,44 @@ aquí se asume aceptada por Joyce o Armando.
 ## Joyce — Extensión PostgreSQL
 
 ### CR-JOYCE-001 — Diseño de READ
-Estado: **BLOQUEADO**
+Estado: **DECISIÓN EN CAMINO** — propuesta formal lista (ADR-015), falta que Joyce la confirme/ajuste
 
-Necesitamos definir:
-- Firma exacta del procedure de lectura por tabla (nombres, nº/tipos de parámetros).
-- Criterio de consulta (por PK completa / PK parcial / filtros).
-- Cómo devuelve filas un `PROCEDURE` llamado con `CALL` (INOUT, OUT, refcursor,
-  tabla temporal, otra vía aceptada por el docente).
-- Comportamiento con tablas con PK, con PK compuesta y sin PK.
+Contexto: el enunciado §4.5 permite "recuperar información de la tabla de acuerdo con los
+criterios definidos por el equipo", por lo que READ ya no es un bloqueo técnico: es una
+decisión de equipo. El área Seguridad adoptó ADR-015.
 
-Por qué afecta nuestra área:
-- Sin READ ejecutable no podemos dar `GRANT EXECUTE` real ni probar la columna
-  READ de la matriz vendedor/supervisor/administrador.
-- La demo exige "usuario autorizado lee / no autorizado es rechazado".
+Decisión propuesta (ya especificada en DECISIONS.md ADR-015):
+- `consultar` = consulta por **PK completa**, devuelve **una fila vía INOUT**.
+- Firma base en ADR-015 con ejemplos para `lab.producto` y `lab.detalle_factura`.
+- Fila inexistente → error con SQLSTATE descriptivo (propuesta `P0002`).
+- Tabla sin PK → se deriva a CR-JOYCE-003 (no se decide aquí).
 
-Información que necesitamos de Joyce:
-- Propuesta de firma + ejemplo concreto sobre `lab.producto` y `lab.detalle_factura`.
-- Confirmación del docente de que la vía elegida cuenta como "procedimiento".
+Necesitamos de Joyce:
+- Confirmar que la extensión emitirá esta firma (o ajustarla), y el SQLSTATE exacto de
+  fila no encontrada que Python tendrá que mostrar.
 
-Propuesta/alternativas que estamos evaluando (sin adoptar):
-- READ por PK vía INOUT (una fila) como mínimo demostrable — usado solo en fixture.
-- Refcursor OUT para multi-fila.
-- Escalar a `FUNCTION` para lectura si el docente lo acepta (implicaría revisar ADR-003).
+Alternativas evaluadas y descartadas por ahora:
+- Refcursor OUT para multi-fila: documentado como opción, NO requerido para la entrega.
 
 ### CR-JOYCE-002 — Naming, esquema y firmas de procedures generados
-Estado: **BLOQUEADO**
+Estado: **PARCIALMENTE RESUELTO** — naming adoptado; pendiente firmas/esquema/anti-colisión
 
-Necesitamos definir:
-- Convención final (ADR-007: `<tabla>_<operacion>` vs verbos español del ejemplo).
-- Esquema destino de los procedures generados.
-- Firmas completas INSERT/UPDATE/DELETE (orden de params, tratamiento de
-  DEFAULT/identity, PK compuesta como N params).
-- Regla anti-colisión (overloads, nombres con mayúsculas/símbolos).
+Resuelto (ADR-007, adoptado): convención del propio enunciado §4.10.
+
+```text
+<tabla>_insertar | <tabla>_consultar | <tabla>_actualizar | <tabla>_eliminar
+```
+
+Pendiente que defina Joyce:
+- Esquema destino de los procedures generados (recomendación base: mismo esquema de la tabla).
+- Tipos exactos y orden de parámetros (el fixture usa `integer,text,numeric` para `producto`).
+- Regla anti-colisión con nombres que requieren quoting (opción base: los 4 nombres son
+  únicos por construcción; confirmar cómo calificar si el esquema no califica).
 
 Por qué afecta nuestra área:
 - Cada `GRANT EXECUTE ON PROCEDURE ... (tipos exactos)` depende de la firma.
-  Sin firmas congeladas no podemos escribir la capa de privilegios definitiva.
-
-Información que necesitamos de Joyce:
-- Tabla de ejemplo: esquema + 4 nombres + 4 firmas para una tabla PK simple y una
-  PK compuesta.
+  La plantilla parametrizada (`tests/fixtures/05_grants_template.sql`) ya está lista para
+  recibir los nombres reales sin rehacer trabajo.
 
 ### CR-JOYCE-003 — Tablas sin PK
 Estado: **REQUIERE COORDINACIÓN** (no bloquea el lab, sí la matriz final)
@@ -78,18 +76,26 @@ Alternativa propuesta:
   solo con flag explícito del administrador.
 
 ### CR-JOYCE-005 — Owner y cláusula SECURITY que emitirá la extensión
-Estado: **REQUIERE COORDINACIÓN** (condiciona ADR-011)
+Estado: **REQUIERE COORDINACIÓN** (condiciona ADR-011 que ya tiene recomendación formal)
 
-Necesitamos definir:
-- Rol owner de los procedures generados.
-- Si la extensión emitirá `SECURITY INVOKER` / `SECURITY DEFINER` explícito o
-  heredará el default, y si fijará `SET search_path`.
+Contexto: el área Seguridad adoptó una **recomendación formal** en ADR-011: `SECURITY
+INVOKER` por defecto, con evidencia del experimento (EXP-01/02). La decisión global se
+cierra con voto del equipo + tu confirmación.
+
+Necesitamos que la extensión emita en cada procedure generado:
+- Cláusula `SECURITY INVOKER` explícita (no depender del default).
+- `SET search_path = <esquema_destino>, pg_temp`.
+- Nombres calificados `<esquema>.<tabla>` dentro del cuerpo.
+- SQL dinámico solo con `%I`/`USING` (ADR-013).
+
+Y que confirmes:
+- Rol owner de los procedures generados (recomendación: `crud_admin`-equivalente, nunca
+  superusuario personal).
 
 Por qué afecta nuestra área:
-- Con DEFINER, nuestra estrategia GRANT cambia por completo (solo EXECUTE +
-  `REVOKE` de tablas). Con INVOKER se exige doble llave EXECUTE+tabla.
-- Nuestro experimento `tests/security/02_invoker_vs_definer.sql` demuestra la
-  diferencia; la decisión final debe ser conjunta (ADR-011 sigue pendiente).
+- Con INVOKER nuestra estrategia GRANT es doble (EXECUTE + tabla). Si la extensión
+  pudiera emitir DEFINER, la matriz cambiaría (solo EXECUTE). Nuestro
+  `tests/security/02_invoker_vs_definer.sql` demuestra la diferencia.
 
 ---
 
@@ -139,5 +145,8 @@ Por qué afecta nuestra área:
 - Fecha de entrega (ADR-014): **PENDIENTE DE CONFIRMACIÓN CON DOCENTE**
   (2021 vs 2026 en el enunciado). No asumimos ninguna.
 - `CONTRACTS.md` no se modificó en Fase 0: no inventamos firmas de Joyce.
+- Fase A: se adoptaron ADR-007 (naming oficial §4.10) y ADR-015 (READ por PK vía INOUT);
+  ADR-011 tiene recomendación formal (INVOKER). Todo documentado en `DECISIONS.md`
+  como especificación para implementación de Joyce/Armando.
 - Harness verificable por Joyce/Armando: `tests/README.md` + scripts SQL puros,
   probados en PostgreSQL 18 (matriz 7/7, negativas 11/11, demo E2E OK con fixtures).

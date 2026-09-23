@@ -72,11 +72,19 @@ Las decisiones globales requieren coordinación entre los tres. Las decisiones l
 
 ## ADR-007 — Convención de procedimientos
 
-**Estado:** Pendiente de cierre
+**Estado:** Adoptada — convención del enunciado (§4.10)
 
-**Propuesta:** `<tabla>_<operacion>`.
+**Decisión:** Los procedimientos generados se nombran como `<tabla>_<operacion>` con los
+verbos del ejemplo oficial del enunciado:
 
-**Ejemplo:**
+```text
+<tabla>_insertar      → INSERT
+<tabla>_consultar     → READ
+<tabla>_actualizar    → UPDATE
+<tabla>_eliminar      → DELETE
+```
+
+**Ejemplo (del enunciado):**
 
 ```text
 cliente_insertar
@@ -85,7 +93,40 @@ cliente_actualizar
 cliente_eliminar
 ```
 
-Debe definirse además cómo evitar colisiones cuando existan overloads o nombres especiales.
+**Justificación:** es la convención que usa el propio profesor en §4.10, por lo que no
+queda a criterio del equipo.
+
+**Especificación para implementación (Joyce):**
+- El nombre se compone en la extensión como `<tabla_quoated>_<operacion>`.
+- `tabla` se identifica con `quote_ident`/`%I` antes de concatenar el sufijo de operación
+  (los identificadores NO son valores ordinarios, ADR-013).
+- Esquema destino de los procedures generados: **pendiente de confirmar con Joyce**
+  (se recomienda el mismo esquema de la tabla). Ver CR-JOYCE-002.
+- Regla anti-colisión con overloads/nombres especiales: **pendiente de definir por Joyce**
+  (opción base: los 4 nombres por tabla son únicos por construcción; las colisiones solo
+  podrían darse por overloads que el generador evita al no repetir firmas). Ver CR-JOYCE-002.
+
+**Ejemplos de firma conceptual (base para ADR-015 y CR-JOYCE-002):**
+
+Tabla PK simple `lab.producto(id_producto integer PK, nombre text, precio numeric)`:
+
+```text
+lab.producto_insertar(IN id_producto integer, IN nombre text, IN precio numeric)
+lab.producto_consultar(INOUT id_producto integer, INOUT nombre text, INOUT precio numeric)
+lab.producto_actualizar(IN id_producto integer, IN nombre text, IN precio numeric)
+lab.producto_eliminar(IN id_producto integer)
+```
+
+Tabla PK compuesta `lab.detalle_factura(id_factura integer, id_producto integer, cantidad integer)`:
+
+```text
+lab.detalle_factura_insertar(IN id_factura integer, IN id_producto integer, IN cantidad integer)
+lab.detalle_factura_consultar(INOUT id_factura integer, INOUT id_producto integer, INOUT cantidad integer)
+lab.detalle_factura_actualizar(IN id_factura integer, IN id_producto integer, IN cantidad integer)
+lab.detalle_factura_eliminar(IN id_factura integer, IN id_producto integer)
+```
+
+Los tipos exactos y el orden los confirma Joyce según los catálogos (CR-JOYCE-002).
 
 ---
 
@@ -192,17 +233,34 @@ Debe definirse además cómo evitar colisiones cuando existan overloads o nombre
      sin `EXECUTE` no hay acceso aunque la tabla sea inaccesible. Menos intuitivo
      para explicar "tres niveles de acceso" si todo pasa por una sola llave.
 
-### Recomendación NO vinculante (pendiente de experimento)
+### Recomendación formal del área Seguridad (Joseph) — pendiente de voto del equipo
 
-La hipótesis de trabajo es **INVOKER por defecto** por mínimo privilegio y
-demostrabilidad, reservando DEFINER solo para casos justificados (ej. auditoría
-centralizada o API que deba ocultar la tabla base). NO se adopta todavía:
-requiere el experimento comparativo en `tests/security/02_invoker_vs_definer.sql`
-y la respuesta de Joyce (owner que emitirá la extensión) — ver `CR-JOYCE-005`.
+**Recomendación:** `SECURITY INVOKER` por defecto para los CRUD generados, reservando
+`SECURITY DEFINER` solo para casos justificados (ej. API que deba ocultar la tabla base
+o auditoría centralizada).
 
-**Pregunta a cerrar con el equipo:** ¿los procedures generados fijarán owner +
-`search_path` explícito? ¿La extensión emitirá cláusula `SECURITY` explícita o
-heredará el default?
+**Evidencia del experimento (ejecutado en PostgreSQL 18):**
+- `EXP-01` — procedure INVOKER ejecutado por rol sin permiso de tabla → **error 42501**
+  (mínimo privilegio natural).
+- `EXP-02` — procedure DEFINER idéntico ejecutado por el mismo rol → **permitido**
+  (elevación de privilegio vía owner). VERDI: el riesgo de DEFINER es real y medible.
+- Referencia: `tests/security/02_invoker_vs_definer.sql`.
+
+**Especificación que la extensión debe emitir (para implementación de Joyce):**
+1. Cláusula `SECURITY INVOKER` explícita en cada procedure generado (no depender del
+   default implícito).
+2. `SET search_path = <esquema_destino>, pg_temp` en la definición del procedure.
+3. Cuerpo con nombres calificados (`<esquema>.<tabla>`) — nunca referencias de tabla
+   sin calificar.
+4. SQL dinámico (si se usa): identificadores con `%I`/`quote_ident`, valores con
+   `USING`/`%L` (ADR-013).
+
+**Condición de adopción:** la decisión global NO se considera cerrada hasta:
+- voto del equipo (los tres integrantes), y
+- confirmación de Joyce sobre el owner real que emitirá (CR-JOYCE-005).
+
+**Confirmado por el experimento:** INVOKER bloquea sin permiso de tabla (42501),
+DEFINER eleva vía owner (EXP-01/02).
 
 ---
 
@@ -229,4 +287,41 @@ heredará el default?
 **Estado:** Pendiente de confirmación
 
 **Decisión:** No asumir el año de entrega hasta confirmar con el docente porque el enunciado indica 30 de setiembre de 2021 mientras el inicio indica 2026.
+
+---
+
+## ADR-015 — Contrato de READ (consultar)
+
+**Estado:** Adoptada como decisión del área Seguridad — **requiere confirmación de Joyce** (CR-JOYCE-001) para cerrarla como contrato global.
+
+**Decisión:** `consultar` es un procedure que consulta por **clave primaria completa** y
+devuelve **una fila** mediante parámetros `INOUT`. La firma replica la estructura de la tabla.
+
+**Justificación:** el enunciado §4.5 define READ como *"recuperar información de la tabla
+de acuerdo con los criterios definidos por el equipo"*. La lectura por PK completa es el
+criterio más simple y soporta una PK compuesta sin ambigüedad. En PostgreSQL un
+`PROCEDURE` llamado con `CALL` no retorna result-set directo; la vía `INOUT` es la mínima
+demostrable y ya está validada en el fixture de la Fase 0 (`lab.producto_consultar`,
+probado en MAT-07).
+
+**Especificación para implementación (Joyce):**
+
+Para una tabla `T` con PK `{k1..kN}` y resto de columnas `{c1..cM}`:
+
+```text
+T_consultar(INOUT k1 tipo, ..., INOUT kN tipo, INOUT c1 tipo, ..., INOUT cM tipo)
+```
+
+- Los parámetros PK van primero (INOUT), luego el resto de columnas (INOUT).
+- Si la fila no existe → error con SQLSTATE descriptivo (propuesta: `P0002` con mensaje)
+  para que Python lo muestre correctamente (CONTRACTS §5).
+- Para PK simple el patrón es `(INOUT id_pk tipo, INOUT resto...)` — ejemplo `lab.producto_consultar`.
+- Para PK compuesta todos los componentes van como parámetros — ejemplo `lab.detalle_factura_consultar`.
+
+**Casos pendientes de otros contratos:**
+- Tabla sin PK → READ por PK no aplica; se deriva a CR-JOYCE-003 (listado completo o
+  "no aplicable"). No cerramos este caso hasta respuesta de Joyce.
+- Lectura multi-fila (filtros, listado): opción documentada vía `refcursor OUT`, NO
+  requerida para la entrega a menos que el docente la exija.
+- Comportamiento de tablas sin PK versus listado completo se discutirá en CR-JOYCE-003.
 
