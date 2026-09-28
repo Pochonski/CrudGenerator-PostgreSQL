@@ -52,9 +52,9 @@ Construir una aplicación Python que permita al administrador conectarse a Postg
 
 ## Estado actual
 
-- [ ] Arquitectura de módulos
-- [ ] Biblioteca PostgreSQL confirmada
-- [ ] Conexión
+- [x] Arquitectura de módulos (base: `config` + `db/connection`)
+- [x] Biblioteca PostgreSQL confirmada (`psycopg>=3.2`, ADR-005)
+- [x] Conexión (`ConnectionManager`: abrir/reutilizar/cerrar/context manager)
 - [ ] Detección de extensión
 - [ ] Esquemas
 - [ ] Tablas
@@ -64,13 +64,28 @@ Construir una aplicación Python que permita al administrador conectarse a Postg
 - [ ] Generación
 - [ ] Roles
 - [ ] Privilegios
-- [ ] Manejo de errores
+- [x] Manejo de errores (base de conexión: jerarquía propia + SQLSTATE preservado)
 - [ ] Integración completa
 - [ ] Prueba con tabla nueva
 
 ## Decisiones locales
 
-Registrar aquí decisiones que no afecten los contratos globales.
+- `ConnectionManager` usa `autocommit=True` por defecto para no dejar
+  transacciones abiertas en validaciones de solo lectura; con
+  `autocommit=False` hace `rollback` explícito tras validar. Las operaciones
+  administrativas futuras usarán transacciones explícitas.
+- Jerarquía propia de errores (`AuthenticationError`, `DatabaseNotFoundError`,
+  `ServerUnavailableError`, `InsufficientPrivilegeError`,
+  `UnexpectedDatabaseError`, base `DatabaseConnectionError` con `sqlstate` y
+  `original`) mapeada desde `psycopg`/SQLSTATE; nunca expone la contraseña
+  (`repr` propio + saneado de mensajes). `commit()`/`rollback()` son estrictos:
+  sin conexión abierta lanzan `DatabaseConnectionError`.
+- `validate()` retorna `ConnectionInfo(database, current_user, server_version)`
+  con una sola consulta (`current_database()`, `current_user`, `version()`),
+  sin `print` y sin tocar catálogos. La UI decidirá cómo mostrarlo.
+- Prueba de integración real aislada en
+  `tests/test_connection_integration.py`, omitida sin `CRUDGEN_TEST_POSTGRES=1`.
+- No se tocó ningún contrato global (`CONTRACTS.md`/`DECISIONS.md` sin cambios).
 
 ## Problemas / descubrimientos
 
