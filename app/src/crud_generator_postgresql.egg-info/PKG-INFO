@@ -1,0 +1,9 @@
+Metadata-Version: 2.4
+Name: crud-generator-postgresql
+Version: 0.1.0
+Summary: Aplicación Python para administrar la generación automática de procedimientos CRUD en PostgreSQL
+Requires-Python: >=3.11
+Requires-Dist: psycopg[binary]>=3.2
+Provides-Extra: dev
+Requires-Dist: pytest>=8; extra == "dev"
+Requires-Dist: ruff; extra == "dev"

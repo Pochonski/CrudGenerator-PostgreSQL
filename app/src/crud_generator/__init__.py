@@ -1,0 +1,1 @@
+"""Aplicación cliente para CRUD Generator PostgreSQL."""

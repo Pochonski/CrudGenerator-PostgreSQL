@@ -1,0 +1,13 @@
+# Python
+.venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.ruff_cache/
+
+# Variables de entorno / secretos
+.env
+
+# Sistema operativo
+.DS_Store
+Thumbs.db
