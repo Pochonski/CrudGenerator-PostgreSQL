@@ -119,6 +119,16 @@ Construir una aplicación Python que permita al administrador conectarse a Postg
   inmutable (`schema`, `tables`, `operations`) y mensaje final de generación
   pendiente. `NOT_INSTALLED`/`NOT_ACCESSIBLE`/`ERROR` detienen el flujo sin
   intentar CRUD; errores muestran mensaje sin traceback.
+- Matriz de privilegios (`privileges/matrix.py`, solo modelos sin SQL):
+  `PrivilegeAssignment` (frozen: `role` + `CrudOperation`) y `PrivilegeMatrix`
+  mutable controlada que solo guarda pares habilitados (denegación por
+  defecto; `enable`/`disable` idempotentes; `is_allowed`/`operations_for`/
+  `roles`/`assignments` deterministas por rol y orden de `CrudOperation`).
+  Conserva el universo de roles configurados (`add_role`; `enable`/`disable`
+  registran): un rol totalmente denegado sigue en `roles()` para la futura
+  fase REVOKE sin privilegios residuales.
+  Representa intención del usuario, NO permisos efectivos de PostgreSQL;
+  roles como datos (sin hardcodear fixtures); sin `GRANT`/`REVOKE`/`SET ROLE`.
 - No se tocó ningún contrato global (`CONTRACTS.md`/`DECISIONS.md` sin cambios).
 
 ## Problemas / descubrimientos
