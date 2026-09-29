@@ -31,4 +31,4 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: Run SQL security and integration harness
-        run: ./tests/run_harness.sh
+        run: bash tests/run_harness.sh
