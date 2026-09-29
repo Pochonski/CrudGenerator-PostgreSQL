@@ -230,6 +230,10 @@ class ConnectionManager:
         except Exception as exc:
             raise _map_error(exc, self._config) from exc
 
+    def translate_error(self, exc: BaseException) -> DatabaseConnectionError:
+        """Traduce una excepción a la jerarquía propia (para otros servicios)."""
+        return _map_error(exc, self._config)
+
     def rollback(self) -> None:
         """Revierte la transacción activa. Sin conexión lanza error."""
         conn = self.connection
