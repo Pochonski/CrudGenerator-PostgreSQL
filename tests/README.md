@@ -62,3 +62,27 @@ Cada archivo es re-ejecutable (`DROP ... IF EXISTS` / bloques `DO` idempotentes)
   No son el generador CRUD de Joyce.
 - Resultado esperado de denegado: `SQLSTATE 42501 insufficient_privilege`.
 - `SET ROLE` + `RESET ROLE` en cada bloque; nunca dejar la sesión con rol cambiado.
+
+
+## Harness fail-fast
+
+Para ejecutar todo el laboratorio con una salida confiable para CI:
+
+```bash
+export PGHOST=localhost PGPORT=5432 PGUSER=postgres PGDATABASE=devdb
+export PGPASSWORD=postgres
+./tests/run_harness.sh
+```
+
+El harness usa `psql -v ON_ERROR_STOP=1` y además inspecciona los `RAISE NOTICE`
+de las pruebas. Un `FAIL`/ `FALLO` inesperado convierte el resultado del script
+en fallo real (exit code 1), aunque PostgreSQL haya terminado con código 0.
+
+Los casos negativos intencionales siguen siendo válidos cuando la propia prueba
+captura el SQLSTATE esperado y reporta `OK`. El caso `DYN-04` que detecta
+deliberadamente el señuelo inseguro está etiquetado como `OK-detección` y no
+se considera un fallo del harness.
+
+Esto permite usar el mismo comando localmente y posteriormente en CI, sin
+depender de interpretar manualmente cientos de líneas de `NOTICE`.
+
