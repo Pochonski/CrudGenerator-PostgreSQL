@@ -58,9 +58,9 @@ Construir una aplicación Python que permita al administrador conectarse a Postg
 - [x] Detección de extensión (`ExtensionService.check_extension` → `ExtensionStatus`)
 - [x] Esquemas (`CatalogService.list_schemas`)
 - [x] Tablas (`CatalogService.list_tables`, solo listado; sin columnas/PK)
-- [ ] Selección de tablas
+- [x] Selección de tablas (CLI: una/varias/todas + `CrudSelection`)
 - [ ] Análisis de tabla
-- [ ] Selección CRUD
+- [x] Selección CRUD (CLI + `CrudOperation`, sin generar)
 - [ ] Generación
 - [x] Roles (`CatalogService.list_roles`, solo listado; sin GRANT/REVOKE)
 - [ ] Privilegios
@@ -112,6 +112,13 @@ Construir una aplicación Python que permita al administrador conectarse a Postg
 - Nombre de extensión NO congelado: la lógica recibe el nombre por parámetro;
   `DEFAULT_EXTENSION_NAME = "crud_generator"` es provisional (del diagrama de
   `ARCHITECTURE.md`) hasta que Joyce confirme el `.control`.
+- CLI + orquestador (`ui/cli.py` + `application.py`, `main.py` mínimo):
+  `Cli` con I/O inyectable (password con `getpass`, defaults host/puerto,
+  reintentos); `ApplicationFlow` (factorías inyectables) orquesta
+  conexión → extensión → esquema → tablas → operaciones → `CrudSelection`
+  inmutable (`schema`, `tables`, `operations`) y mensaje final de generación
+  pendiente. `NOT_INSTALLED`/`NOT_ACCESSIBLE`/`ERROR` detienen el flujo sin
+  intentar CRUD; errores muestran mensaje sin traceback.
 - No se tocó ningún contrato global (`CONTRACTS.md`/`DECISIONS.md` sin cambios).
 
 ## Problemas / descubrimientos
