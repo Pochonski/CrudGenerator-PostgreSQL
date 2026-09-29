@@ -1,4 +1,4 @@
-"""Modelos simples del área Python (esquemas, tablas, roles).
+"""Modelos simples del área Python (esquemas, tablas, roles, extensión).
 
 Son contenedores inmutables para que la UI futura consuma fácilmente los
 resultados del catálogo. No contienen lógica SQL ni reglas de negocio.
@@ -7,6 +7,7 @@ resultados del catálogo. No contienen lógica SQL ni reglas de negocio.
 from __future__ import annotations
 
 from dataclasses import dataclass
+from enum import Enum
 
 
 @dataclass(frozen=True)
@@ -36,3 +37,54 @@ class RoleInfo:
     name: str
     can_login: bool
     is_superuser: bool
+
+
+class ExtensionState(Enum):
+    """Estados de la verificación de extensión (§4.2 del enunciado)."""
+
+    INSTALLED = "INSTALLED"
+    NOT_INSTALLED = "NOT_INSTALLED"
+    NOT_ACCESSIBLE = "NOT_ACCESSIBLE"
+    ERROR = "ERROR"
+
+
+@dataclass(frozen=True)
+class ExtensionStatus:
+    """Resultado estructurado de verificar una extensión en PostgreSQL."""
+
+    name: str
+    state: ExtensionState
+    version: str | None = None
+    schema: str | None = None
+    message: str | None = None
+    sqlstate: str | None = None
+
+
+class CrudOperation(Enum):
+    """Operaciones CRUD seleccionables (nombres del enunciado §4.10)."""
+
+    INSERT = "INSERT"
+    READ = "READ"
+    UPDATE = "UPDATE"
+    DELETE = "DELETE"
+
+
+@dataclass(frozen=True)
+class CrudSelection:
+    """Selección estructurada lista para la futura generación.
+
+    Inmutable y validada: la generación real la recibirá sin cambiar la UI.
+    Todavía no incluye ningún resultado de generación.
+    """
+
+    schema: str
+    tables: tuple[str, ...] = ()
+    operations: tuple[CrudOperation, ...] = ()
+
+    def __post_init__(self) -> None:
+        if not self.schema.strip():
+            raise ValueError("La selección requiere un esquema.")
+        if not self.tables:
+            raise ValueError("La selección requiere al menos una tabla.")
+        if not self.operations:
+            raise ValueError("La selección requiere al menos una operación.")

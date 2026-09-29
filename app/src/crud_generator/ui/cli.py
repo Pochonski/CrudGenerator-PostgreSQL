@@ -1,0 +1,195 @@
+"""CLI del generador CRUD (presentación y lectura de input, sin SQL).
+
+Toda entrada/salida pasa por funciones inyectables para que la CLI sea
+testeable sin un terminal real ni PostgreSQL.
+"""
+
+from __future__ import annotations
+
+import getpass
+from collections.abc import Callable, Sequence
+
+from crud_generator.config import DatabaseConfig
+from crud_generator.db.connection import (
+    AuthenticationError,
+    DatabaseConnectionError,
+    DatabaseNotFoundError,
+    InsufficientPrivilegeError,
+    ServerUnavailableError,
+)
+from crud_generator.models import (
+    CrudOperation,
+    CrudSelection,
+    SchemaInfo,
+    TableInfo,
+)
+
+DEFAULT_HOST = "localhost"
+DEFAULT_PORT = 5432
+
+_ALL_TOKEN = "a"
+
+CRUD_OPTIONS: tuple[CrudOperation, ...] = (
+    CrudOperation.INSERT,
+    CrudOperation.READ,
+    CrudOperation.UPDATE,
+    CrudOperation.DELETE,
+)
+
+
+class Cli:
+    """Interfaz de línea de comandos con I/O inyectable."""
+
+    def __init__(
+        self,
+        *,
+        read: Callable[[str], str] = input,
+        write: Callable[[str], None] = print,
+        read_password: Callable[[str], str] = getpass.getpass,
+    ) -> None:
+        self._read = read
+        self._write = write
+        self._read_password = read_password
+
+    def show(self, message: str) -> None:
+        self._write(message)
+
+    def ask_connection(self) -> DatabaseConfig:
+        """Pide los datos de conexión y retorna un `DatabaseConfig` válido."""
+        self.show("CRUD Generator PostgreSQL")
+        host = self._ask_with_default("Servidor", DEFAULT_HOST)
+        port = self._ask_port()
+        database = self._ask_required("Base de datos")
+        user = self._ask_required("Usuario")
+        # Nunca se imprime ni se registra la contraseña.
+        password = self._read_password("Contraseña: ")
+        return DatabaseConfig(
+            host=host, port=port, database=database, user=user, password=password
+        )
+
+    def select_schema(self, schemas: Sequence[SchemaInfo]) -> SchemaInfo:
+        """Selección numerada de esquema con reintentos ante índice inválido."""
+        if not schemas:
+            raise ValueError("No hay esquemas visibles para seleccionar.")
+        self.show("Seleccionar esquema:")
+        for index, schema in enumerate(schemas, start=1):
+            self.show(f"{index}. {schema.name}")
+        while True:
+            raw = self._read("Esquema [número]: ").strip()
+            try:
+                choice = int(raw)
+            except ValueError:
+                self.show("Selección inválida: escriba el número del esquema.")
+                continue
+            if 1 <= choice <= len(schemas):
+                return schemas[choice - 1]
+            self.show("Selección inválida: número fuera de rango.")
+
+    def select_tables(self, tables: Sequence[TableInfo]) -> list[TableInfo]:
+        """Selección de tablas: `1`, `1,3,5` o `a` (todas). Sin duplicados."""
+        names = [table.name for table in tables]
+        self.show("Seleccionar tablas (ej. 1,3,5 o 'a' para todas):")
+        for index, name in enumerate(names, start=1):
+            self.show(f"{index}. {name}")
+        while True:
+            raw = self._read("Tablas: ").strip()
+            try:
+                chosen = parse_number_selection(raw, len(names))
+            except ValueError as exc:
+                self.show(f"Selección inválida: {exc}")
+                continue
+            return [tables[index - 1] for index in chosen]
+
+    def select_operations(self) -> list[CrudOperation]:
+        """Selección de operaciones CRUD: `1`, `1,2` o `a` (todas)."""
+        self.show("Seleccionar operaciones (ej. 1,2 o 'a' para todas):")
+        for index, operation in enumerate(CRUD_OPTIONS, start=1):
+            self.show(f"{index}. {operation.value}")
+        while True:
+            raw = self._read("Operaciones: ").strip()
+            try:
+                chosen = parse_number_selection(raw, len(CRUD_OPTIONS))
+            except ValueError as exc:
+                self.show(f"Selección inválida: {exc}")
+                continue
+            return [CRUD_OPTIONS[index - 1] for index in chosen]
+
+    def show_summary(self, selection: CrudSelection) -> None:
+        self.show("Resumen:")
+        self.show(f"Esquema: {selection.schema}")
+        self.show("Tablas:")
+        for name in selection.tables:
+            self.show(f"- {name}")
+        self.show("Operaciones:")
+        for operation in selection.operations:
+            self.show(f"- {operation.value}")
+
+    def show_generation_pending(self) -> None:
+        self.show("Selección preparada correctamente.")
+        self.show(
+            "La generación automática se habilitará "
+            "cuando la API de la extensión esté disponible."
+        )
+
+    def describe_error(self, exc: DatabaseConnectionError) -> str:
+        """Mensaje comprensible para el usuario, sin traceback."""
+        if isinstance(exc, AuthenticationError):
+            return f"Credenciales incorrectas: {exc}"
+        if isinstance(exc, DatabaseNotFoundError):
+            return f"Base de datos no encontrada: {exc}"
+        if isinstance(exc, ServerUnavailableError):
+            return f"No se pudo conectar al servidor: {exc}"
+        if isinstance(exc, InsufficientPrivilegeError):
+            return f"Permiso insuficiente: {exc}"
+        return f"Error inesperado: {exc}"
+
+    def _ask_with_default(self, label: str, default: str) -> str:
+        raw = self._read(f"{label} [{default}]: ").strip()
+        return raw or default
+
+    def _ask_required(self, label: str) -> str:
+        while True:
+            raw = self._read(f"{label}: ").strip()
+            if raw:
+                return raw
+            self.show(f"{label} no puede estar vacío.")
+
+    def _ask_port(self) -> int:
+        while True:
+            raw = self._read(f"Puerto [{DEFAULT_PORT}]: ").strip() or str(DEFAULT_PORT)
+            try:
+                port = int(raw)
+            except ValueError:
+                self.show("Puerto inválido: debe ser un número.")
+                continue
+            if 1 <= port <= 65535:
+                return port
+            self.show("Puerto inválido: debe estar entre 1 y 65535.")
+
+
+def parse_number_selection(raw: str, total: int) -> list[int]:
+    """Convierte `1,3,5` o `a` en índices 1-based, ordenados y sin duplicados.
+
+    Lanza `ValueError` con el motivo si la entrada no es válida o la
+    selección queda vacía.
+    """
+    text = raw.strip().lower()
+    if not text:
+        raise ValueError("selección vacía.")
+    if text == _ALL_TOKEN:
+        if total <= 0:
+            raise ValueError("no hay elementos para seleccionar.")
+        return list(range(1, total + 1))
+    chosen: list[int] = []
+    for token in text.replace(",", " ").split():
+        try:
+            number = int(token)
+        except ValueError:
+            raise ValueError(f"'{token}' no es un número.") from None
+        if not 1 <= number <= total:
+            raise ValueError(f"'{number}' está fuera de rango (1-{total}).")
+        if number not in chosen:
+            chosen.append(number)
+    if not chosen:
+        raise ValueError("selección vacía.")
+    return sorted(chosen)
