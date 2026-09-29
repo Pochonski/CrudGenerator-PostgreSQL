@@ -58,3 +58,33 @@ class ExtensionStatus:
     schema: str | None = None
     message: str | None = None
     sqlstate: str | None = None
+
+
+class CrudOperation(Enum):
+    """Operaciones CRUD seleccionables (nombres del enunciado §4.10)."""
+
+    INSERT = "INSERT"
+    READ = "READ"
+    UPDATE = "UPDATE"
+    DELETE = "DELETE"
+
+
+@dataclass(frozen=True)
+class CrudSelection:
+    """Selección estructurada lista para la futura generación.
+
+    Inmutable y validada: la generación real la recibirá sin cambiar la UI.
+    Todavía no incluye ningún resultado de generación.
+    """
+
+    schema: str
+    tables: tuple[str, ...] = ()
+    operations: tuple[CrudOperation, ...] = ()
+
+    def __post_init__(self) -> None:
+        if not self.schema.strip():
+            raise ValueError("La selección requiere un esquema.")
+        if not self.tables:
+            raise ValueError("La selección requiere al menos una tabla.")
+        if not self.operations:
+            raise ValueError("La selección requiere al menos una operación.")
