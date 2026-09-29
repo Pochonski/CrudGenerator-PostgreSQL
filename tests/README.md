@@ -86,3 +86,27 @@ se considera un fallo del harness.
 Esto permite usar el mismo comando localmente y posteriormente en CI, sin
 depender de interpretar manualmente cientos de líneas de `NOTICE`.
 
+
+
+## 10. Discovery genérico de procedures
+
+`security/10_generated_routine_discovery.sql` inspecciona `pg_proc` sin
+suponer las firmas de Joyce. Por defecto descubre procedures de `lab`.
+
+Para filtrar:
+
+```sql
+SET crudgen.discovery_schema = 'lab';
+SET crudgen.discovery_prefix = 'producto_';
+\i tests/security/10_generated_routine_discovery.sql
+```
+
+La salida incluye firma de identidad, owner, SECURITY INVOKER/DEFINER,
+`search_path`, argumentos, retorno y si PUBLIC conserva EXECUTE. El resumen
+final permite detectar rápidamente rutinas descubiertas, DEFINER e
+EXECUTE público.
+
+Este discovery es deliberadamente independiente de T1-T6: no sustituye todavía
+las matrices ni decide qué procedure corresponde a INSERT/READ/UPDATE/DELETE.
+Cuando Joyce publique el contrato real, esa asociación se hará sobre este
+resultado y no mediante firmas hardcodeadas.
