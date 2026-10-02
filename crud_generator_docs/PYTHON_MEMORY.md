@@ -50,23 +50,23 @@ Construir una aplicación Python que permita al administrador conectarse a Postg
 - Usar los contratos definidos en `CONTRACTS.md`.
 - La UI debe estar separada de la lógica de acceso a datos tanto como sea razonable.
 
-## Estado actual
+## Estado actual (02-10-2026, post-merge Joyce → main)
 
 - [x] Arquitectura de módulos (base: `config` + `db/connection`)
 - [x] Biblioteca PostgreSQL confirmada (`psycopg>=3.2`, ADR-005)
 - [x] Conexión (`ConnectionManager`: abrir/reutilizar/cerrar/context manager)
-- [x] Detección de extensión (`ExtensionService.check_extension` → `ExtensionStatus`)
+- [x] Detección de extensión (`ExtensionService.check_extension` → `ExtensionStatus`, 4 estados §4.2)
 - [x] Esquemas (`CatalogService.list_schemas`)
-- [x] Tablas (`CatalogService.list_tables`, solo listado; sin columnas/PK)
+- [x] Tablas (`CatalogService.list_tables`, solo listado; sin columnas/PK — `analyze_table` es de la extensión)
 - [x] Selección de tablas (CLI: una/varias/todas + `CrudSelection`)
-- [ ] Análisis de tabla
+- [ ] Análisis de tabla (pendiente: llamar `crud_generator.analyze_table` — API cerrada en `CONTRACTS.md` §3.1)
 - [x] Selección CRUD (CLI + `CrudOperation`, sin generar)
-- [ ] Generación
+- [ ] Generación (pendiente: llamar `crud_generator.generate_crud` — API cerrada en `CONTRACTS.md` §3.2; `ApplicationFlow` hoy termina en `show_generation_pending()`)
 - [x] Roles (`CatalogService.list_roles`, solo listado; sin GRANT/REVOKE)
-- [ ] Privilegios
+- [ ] Privilegios (pendiente CR-ARMANDO-001/003)
 - [x] Manejo de errores (base de conexión: jerarquía propia + SQLSTATE preservado)
-- [ ] Integración completa
-- [ ] Prueba con tabla nueva
+- [ ] Integración completa (contratos cerrados 01-10, extensión mergeada 02-10, falta tramo Python)
+- [ ] Prueba con tabla nueva (`lab.tabla_virgen` intacta, reservada)
 
 ## Decisiones locales
 
@@ -109,9 +109,10 @@ Construir una aplicación Python que permita al administrador conectarse a Postg
   Nombre parametrizado con `%s`; `""` → `ValueError`; ownership de
   transacciones igual que `CatalogService`; solo `psycopg.Error` se convierte
   en `ERROR` (un bug ajeno a PG se propaga).
-- Nombre de extensión NO congelado: la lógica recibe el nombre por parámetro;
-  `DEFAULT_EXTENSION_NAME = "crud_generator"` es provisional (del diagrama de
-  `ARCHITECTURE.md`) hasta que Joyce confirme el `.control`.
+- Nombre de extensión CONFIRMADO 01-10 (Joyce): `crud_generator` (`extension/crud_generator.control`,
+  `schema = crud_generator`). `DEFAULT_EXTENSION_NAME` deja de ser provisional; coincide con
+  `CONTRACTS.md` §3. API `analyze_table`/`generate_crud` cerrada — ver `ARMANDO_JOSEPH_INTEGRATION_HANDOFF.md`
+  para llamada desde psycopg (FUNCTION vs PROCEDURE, READ con/sin PK vía refcursor, GRANT doble llave).
 - CLI + orquestador (`ui/cli.py` + `application.py`, `main.py` mínimo):
   `Cli` con I/O inyectable (password con `getpass`, defaults host/puerto,
   reintentos); `ApplicationFlow` (factorías inyectables) orquesta
@@ -119,7 +120,7 @@ Construir una aplicación Python que permita al administrador conectarse a Postg
   inmutable (`schema`, `tables`, `operations`) y mensaje final de generación
   pendiente. `NOT_INSTALLED`/`NOT_ACCESSIBLE`/`ERROR` detienen el flujo sin
   intentar CRUD; errores muestran mensaje sin traceback.
-- No se tocó ningún contrato global (`CONTRACTS.md`/`DECISIONS.md` sin cambios).
+- No se tocó ningún contrato global desde Python (`CONTRACTS.md`/`DECISIONS.md` los cerró Joyce 01-10).
 
 ## Problemas / descubrimientos
 
@@ -129,9 +130,6 @@ Construir una aplicación Python que permita al administrador conectarse a Postg
 
 Registrar cualquier cambio en firmas, nombres, parámetros o resultados que afecte a la extensión o seguridad.
 
-- **REQUIERE COORDINACIÓN — JOYCE (nombre de la extensión):** `DEFAULT_EXTENSION_NAME`
-  es provisional; falta el nombre definitivo del `.control`/API para congelarlo.
-- **REQUIERE COORDINACIÓN — JOYCE (EXECUTE sobre funciones públicas):** el estado
-  `NOT_ACCESSIBLE` hoy solo detecta falta de `USAGE` sobre el esquema instalado;
-  la verificación fina de `EXECUTE` sobre cada función pública queda pendiente de
-  que existan firmas definitivas (CR-JOYCE-001/002). No se inventó ninguna firma.
+- [x] ~~JOYCE (nombre de la extensión)~~ RESUELTO 01-10: `crud_generator` confirmado (`.control` + `CONTRACTS.md` §3).
+- [x] ~~JOYCE (EXECUTE sobre funciones públicas)~~ RESUELTO 01-10: firmas cerradas (CR-JOYCE-001/002); pendiente solo que Python implemente verificación fina si aplica.
+- Pendiente ARMANDO: CR-ARMANDO-001 (vía GRANT/REVOKE), CR-ARMANDO-002 (formato `generate_crud`), CR-ARMANDO-003 (validación `SET ROLE + CALL`).

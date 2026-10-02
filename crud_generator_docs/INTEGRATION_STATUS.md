@@ -1,6 +1,6 @@
 # Estado de Integración del Proyecto
 
-**Fecha de auditoría:** 22-09-2026 (Joseph).
+**Fecha de auditoría:** 02-10-2026 (Joseph, post-merge `joyce/extension-foundation` → `main`).
 **Enunciado de referencia:** `documento_completo.md` (transcripción fiel del PDF).
 
 ## Responsables
@@ -25,14 +25,14 @@ El estado es compartido: cualquier integrante puede reportar bloqueos o dependen
 - 🔴 No iniciado
 - Fase 0 seguridad distingue además: Diseñado / Implementado / Probado / Integrado.
 
-## Auditoría entregables del enunciado (22-09-2026)
+## Auditoría entregables del enunciado (02-10-2026, post-merge)
 
 | Entregable (§10) | Responsable | Estado | Bloqueado por |
 |---|---|---|---|
-| Extensión instalable (`.control`, scripts, fuente) | Joyce | 🔴 0% código | — |
-| Aplicación Python (código + documentación de uso) | Armando | 🔴 0% código | — |
-| VÍDEO de evidencia (10 pasos §10) | Equipo | 🔴 | Joyce + Armando + demo |
-| Demo en vivo (10 pasos §11 + tabla del docente) | Equipo | 🔴 | Joyce + Armando |
+| Extensión instalable (`.control`, scripts, fuente) | Joyce | 🟢 Implementada y mergeada a `main` (`extension/crud_generator.control`, `extension/sql/crud_generator--1.0.sql`, probada PG16) — pendiente push a `origin/main` | Push + integración Python |
+| Aplicación Python (código + documentación de uso) | Armando | 🟡 ~60% andamiaje (conexión, detección 4 estados, catálogo, CLI, orquestador; falta `analyze_table`/`generate_crud`/privilegios) | CR-ARMANDO-001..003 |
+| VÍDEO de evidencia (10 pasos §10) | Equipo | 🔴 | Tramo Python + demo E2E |
+| Demo en vivo (10 pasos §11 + tabla del docente) | Equipo | 🔴 | Tramo Python + tabla virgen |
 
 Pruebas obligatorias (§9): casos 1-2-3 y 3 roles cubiertos por el laboratorio de
 `tests/` con fixtures; pendiente validar contra procedures reales de Joyce.
@@ -47,21 +47,21 @@ Pruebas obligatorias (§9): casos 1-2-3 y 3 roles cubiertos por el laboratorio d
 
 ## Python
 
-- 🟡 Diseño de arquitectura
-- 🔴 Conexión
-- 🔴 Detección de extensión (requisito §4.2: 4 estados; pendiente de incluir en contrato)
-- 🔴 Selección de esquema/tablas (requisito §4.4: una/varias/todas)
-- 🔴 Generación
-- 🔴 Privilegios
+- 🟢 Diseño de arquitectura (capas `ui/cli` → `application` → `services` → `db/connection`)
+- 🟢 Conexión (`ConnectionManager` + `validate()`, errores con SQLSTATE, `main.py` mínimo)
+- 🟢 Detección de extensión (requisito §4.2: 4 estados `INSTALLED/NOT_INSTALLED/NOT_ACCESSIBLE/ERROR` en `ExtensionService.check_extension`)
+- 🟢 Selección de esquema/tablas (requisito §4.4: una/varias/todas vía `CatalogService` + `Cli.select_schema/select_tables`)
+- 🟢 Selección CRUD + roles listado (`CrudOperation`, `CrudSelection`, `list_roles`; sin GRANT/REVOKE aún)
+- 🔴 Generación (`ApplicationFlow` se detiene en `show_generation_pending()`; no llama `analyze_table`/`generate_crud`)
+- 🔴 Privilegios (sin `GRANT/REVOKE`, sin validación `SET ROLE + CALL`)
 
 ## Seguridad (Joseph)
 
 - 🟢 Matriz de privilegios (idéntica a §4.10 del enunciado; probada con fixtures MAT-01..07)
 - 🟢 GRANT/REVOKE (04_grants probado + plantilla parametrizada 05_grants_template)
-- 🟡 SECURITY INVOKER/DEFINER (recomendación formal ADR-011, experimento EXP-01/02 probado;
-  decisión global pendiente de voto + CR-JOYCE-005)
-- 🟡 Pruebas por roles (NEG-01..11 probados con fixtures; pendiente procedures reales + tabla virgen)
-- 🟢 READ adoptado (ADR-015: por PK vía INOUT; pendiente confirmación Joyce CR-JOYCE-001)
+- 🟢 SECURITY INVOKER/DEFINER (ADR-011 adoptada 01-10: INVOKER + owner `crud_admin` + `search_path` fijo; EXP-01/02 + discovery 18/18 contra reales)
+- 🟡 Pruebas por roles (NEG-01..11 probados con fixtures; pendiente re-ejecutar MAT/NEG completos contra procedures reales + tabla virgen; MAT-07 requiere ajuste variables INOUT)
+- 🟢 READ adoptado y confirmado (ADR-015 + Joyce: PK vía INOUT + P0002; sin PK vía `refcursor OUT`)
 
 ## Integración
 
@@ -76,8 +76,8 @@ Pruebas obligatorias (§9): casos 1-2-3 y 3 roles cubiertos por el laboratorio d
 ## Riesgos actuales
 
 1. **TIEMPO:** entrega confirmada **domingo 4 de octubre de 2026** (ADR-014). Desde
-   el 2026-10-01 quedan ~3 días. Riesgo crítico de equipo: priorizar un flujo E2E
-   funcional sobre pulir casos exóticos.
+   el 2026-10-02 quedan ~2 días. Merge Joyce→main hecho local (FF a `a1381fa`);
+   pendiente `push` a `origin/main` + priorizar flujo E2E Python sobre pulir exóticos.
 2. ~~Definir firmas/esquema finales de la extensión (CR-JOYCE-002).~~ Resuelto 2026-10-01.
 3. ~~Decidir READ multi-fila / sin PK (CR-JOYCE-003) y policy de procedures existentes (CR-JOYCE-004).~~ Resuelto 2026-10-01.
 4. ~~Cerrar voto ADR-011 (INVOKER) + confirmar owner/cláusula que emitirá la extensión (CR-JOYCE-005).~~ Resuelto 2026-10-01.
