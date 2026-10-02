@@ -2,13 +2,13 @@
 -- Fase 0 — Checklist pre-integración (Joseph). Solo LEE estado, no modifica.
 -- Cada bloque devuelve NOTICE OK / PENDIENTE para saber qué falta de Joyce/Armando.
 
--- INT-01: extensión crud_generator disponible (Joyce)
+-- INT-01: extensión crud_generator disponible (Joyce, contrato cerrado CONTRACTS.md §3)
 DO $$
 BEGIN
   IF EXISTS (SELECT 1 FROM pg_extension WHERE extname = 'crud_generator') THEN
     RAISE NOTICE 'INT-01 OK: extensión crud_generator instalada';
   ELSE
-    RAISE NOTICE 'INT-01 PENDIENTE Joyce: extensión no instalada (CR-JOYCE-001/002)';
+    RAISE NOTICE 'INT-01 PENDIENTE: extensión no instalada en esta base (instalar según extension/README.md)';
   END IF;
 END $$;
 

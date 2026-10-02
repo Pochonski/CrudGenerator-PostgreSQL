@@ -133,3 +133,11 @@ Marcadores disjuntos de 07/09: `TIXR-%`, `SPCR-%`, `LOGR-%`.
 Validado 02-10 en PG18 local: 11/11 + 19/19 OK, doble pasada idéntica,
 cero residuos, `tabla_virgen` intacta. Detalle de firmas y decisiones en
 `crud_generator_docs/ARMANDO_JOSEPH_INTEGRATION_HANDOFF.md` §2.
+
+`security/13_conflict_real_matrix.sql` (NEG-06R, ADR-010) prueba la política
+de procedures existentes contra reales: sin flag → 4×`procedure_conflict`
+sin tocar nada; con `do_replace=true` → 4×success con GRANTs preservados
+(CONF-00..05 OK en PG18 02-10, idempotente).
+
+> 11/12/13 son modo reales y NO forman parte de `run_harness.sh` ni del CI
+> (que valida el modo fixtures). Requieren extensión instalada + grants reales.

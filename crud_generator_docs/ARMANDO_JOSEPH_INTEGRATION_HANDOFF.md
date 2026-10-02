@@ -169,7 +169,7 @@ lógica especial, solo no ocultarlo.
 - Fix de `has_function_privilege('PUBLIC', ...)` → `'public'` en
   `tests/security/10_generated_routine_discovery.sql` (commiteado en PR #8).
 
-### 2.2 Pendiente de tu lado: ajuste en `01_matrix.sql` MAT-07
+### 2.2 Ajuste en `01_matrix.sql` MAT-07 — APLICADO por Joseph 02-10
 
 Al apuntar MAT-07 a `lab.producto_consultar` **real** (no tu fixture), la
 PK también es `INOUT` (ADR-015), a diferencia de tu fixture donde era `IN`.
@@ -187,7 +187,10 @@ BEGIN
   CALL lab.producto_consultar(v_id, v_nombre, v_precio);
 ```
 
-Confirmado que funciona así contra el procedure real.
+Confirmado que funciona así contra el procedure real. El mismo patrón se aplicó
+02-10 a `04_composite_matrix.sql` (MAT-C2/C5/C7/C8/C9), `02_demo_script.sql`
+(DEMO-04) y `06_revoke_public_audit.sql` (REV-01 paso 3b): las variables valen
+tanto con fixtures (PK `IN`) como con reales (PK `INOUT`), CI verde.
 
 ### 2.3 Cómo generar los procedures reales para tu harness
 

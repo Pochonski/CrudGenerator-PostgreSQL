@@ -29,14 +29,15 @@ El estado es compartido: cualquier integrante puede reportar bloqueos o dependen
 
 | Entregable (§10) | Responsable | Estado | Bloqueado por |
 |---|---|---|---|
-| Extensión instalable (`.control`, scripts, fuente) | Joyce | 🟢 Implementada y mergeada a `main` (`extension/crud_generator.control`, `extension/sql/crud_generator--1.0.sql`, probada PG16) — pendiente push a `origin/main` | Push + integración Python |
+| Extensión instalable (`.control`, scripts, fuente) | Joyce | 🟢 Implementada y en `origin/main` (`extension/crud_generator.control`, `extension/sql/crud_generator--1.0.sql`; probada PG16 por Joyce y PG18 por Joseph) | Integración Python |
 | Aplicación Python (código + documentación de uso) | Armando | 🟡 ~60% andamiaje (conexión, detección 4 estados, catálogo, CLI, orquestador; falta `analyze_table`/`generate_crud`/privilegios) | CR-ARMANDO-001..003 |
 | VÍDEO de evidencia (10 pasos §10) | Equipo | 🔴 | Tramo Python + demo E2E |
 | Demo en vivo (10 pasos §11 + tabla del docente) | Equipo | 🔴 | Tramo Python + tabla virgen |
 
 Pruebas obligatorias (§9): casos 1-2-3 y 3 roles cubiertos por el laboratorio de
 `tests/` con fixtures (CI PASS); validados contra procedures reales en PG18 local
-02-10 (ver abajo). `lab.tabla_virgen` intacta (0 filas, 0 rutinas).
+02-10 (ver abajo). `lab.tabla_virgen` probada one-shot 02-10 (VIR-00..06 OK) y
+restaurada a limpio (0 rutinas, 0 filas).
 
 ## Extensión PostgreSQL
 
@@ -65,7 +66,9 @@ Pruebas obligatorias (§9): casos 1-2-3 y 3 roles cubiertos por el laboratorio d
   OK contra reales PG18 02-10 tras fix variables INOUT — CI fixtures PASS)
 - 🟢 Caso 3 §9 + T6 contra reales (archivos nuevos 11/12 modo reales, validados PG18 02-10:
   TIXR 11/11 incl. AUD 4/4; SPC/LOG 19/19 incl. B-POL not_applicable + S-AUDR 7/7;
-  07/09 intactos para modo fixtures; tabla virgen final pendiente)
+  07/09 intactos para modo fixtures)
+- 🟢 Conflicto de procedures (NEG-06R en `13_conflict_real_matrix.sql` PG18 02-10:
+  4×`procedure_conflict` sin flag, 4×success con `do_replace` preservando GRANTs)
 - 🟢 READ adoptado y confirmado (ADR-015 + Joyce: PK vía INOUT + P0002; sin PK vía `refcursor OUT`)
 
 ## Integración
@@ -78,14 +81,16 @@ Pruebas obligatorias (§9): casos 1-2-3 y 3 roles cubiertos por el laboratorio d
   T4 PUB-01 8/8 + PUB-02 24/24 + REV-01 completo, T5 OK, EXP-01/02 OK, demo E2E OK
   (MAT-07/DEMO-04/MAT-C/T4-3b fix variables INOUT, CI fixtures PASS)
 - 🔴 Python → roles/permisos
-- 🟡 Prueba E2E (falta el tramo Python; la parte PostgreSQL del flujo ya está probada)
-- 🔴 Tabla nueva (tabla_virgen reservada, intacta)
+- 🟡 Prueba E2E (falta el tramo Python; la parte PostgreSQL del flujo ya está probada;
+  demo `02_demo_script` OK contra reales + virgen one-shot OK + guion en `VIDEO_DEMO_PLAN.md`)
+- 🟢 Tabla nueva (virgen probada one-shot 02-10 VIR-00..06 OK y restaurada a limpio;
+  el docente aporta su propia tabla en la demo en vivo)
 
 ## Riesgos actuales
 
-1. **TIEMPO:** entrega confirmada **domingo 4 de octubre de 2026** (ADR-014). Desde
-   el 2026-10-02 quedan ~2 días. Merge Joyce→main hecho local (FF a `a1381fa`);
-   pendiente `push` a `origin/main` + priorizar flujo E2E Python sobre pulir exóticos.
+1. **TIEMPO:** entrega confirmada **domingo 4 de octubre de 2026** (ADR-014). Todo lo de
+   extensión + seguridad/integración está en `origin/main` y CI verde; priorizar tramo
+   Python (Armando) y grabación del vídeo.
 2. ~~Definir firmas/esquema finales de la extensión (CR-JOYCE-002).~~ Resuelto 2026-10-01.
 3. ~~Decidir READ multi-fila / sin PK (CR-JOYCE-003) y policy de procedures existentes (CR-JOYCE-004).~~ Resuelto 2026-10-01.
 4. ~~Cerrar voto ADR-011 (INVOKER) + confirmar owner/cláusula que emitirá la extensión (CR-JOYCE-005).~~ Resuelto 2026-10-01.
@@ -117,4 +122,5 @@ Pruebas obligatorias (§9): casos 1-2-3 y 3 roles cubiertos por el laboratorio d
 5. ~~Joseph: MAT/NEG contra reales~~ Hecho 02-10 PG18 (MAT 7/7, MAT-C 9/9, T2R 11/11,
    T6R 19/19, T3 40/40, T4, T5, discovery 18/0/18/0, NEG-06R en `13_conflict_real_matrix.sql`).
 6. ~~Probar tabla_virgen~~ Hecho one-shot 02-10 PG18 (VIR-00..06 OK, restaurada a limpio).
-7. Grabar vídeo de evidencia y demo en vivo (guion en `VIDEO_DEMO_PLAN.md`) antes del 2026-10-04.
+7. Grabar vídeo de evidencia y demo en vivo (guion en `VIDEO_DEMO_PLAN.md`, validado
+   contra PG18) antes del 2026-10-04.

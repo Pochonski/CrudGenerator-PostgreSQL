@@ -1,5 +1,7 @@
 -- tests/security/07_ticket_matrix.sql
--- T2 — Matriz IDENTITY/DEFAULT permitido vs denegado (Joseph). Caso 3 §9.
+-- T2 — Matriz IDENTITY/DEFAULT permitido vs denegado (Joseph). MODO FIXTURES.
+-- Caso 3 §9 contra fixtures; la misma cobertura contra procedures reales está
+-- en 11_ticket_real_matrix.sql (T2R).
 -- Verifica EXECUTE+tabla reales con SET ROLE + CALL sobre los fixtures de
 -- lab.ticket (id_ticket GENERATED ALWAYS AS IDENTITY + DEFAULTs).
 -- Esperado OK → success; esperado DENEGADO → SQLSTATE 42501;

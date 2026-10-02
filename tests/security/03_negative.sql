@@ -71,10 +71,12 @@ BEGIN
   ELSE RAISE NOTICE 'NEG-05 FALLO: bitacora tiene PK inesperada'; END IF;
 END $$;
 
--- NEG-06 | Procedimiento existente → pendiente Joyce (CR-JOYCE-004)
--- Acción manual cuando Joyce defina policy: re-ejecutar generate sobre producto_insertar.
--- Esperado TBD: error / reemplazo / firma. Se registra, no se inventa policy.
-DO $$ BEGIN RAISE NOTICE 'NEG-06 PENDIENTE Joyce: policy de procedures existentes (CR-JOYCE-004)'; END $$;
+-- NEG-06 | Procedimiento existente → RESUELTO (CR-JOYCE-004 / ADR-010).
+-- La policy vive en la extensión y se prueba contra reales en
+-- security/13_conflict_real_matrix.sql (CONF-00..05): sin flag →
+-- procedure_conflict; con do_replace=true → success preservando GRANTs.
+-- Este NOTICE queda como marcador del modo fixtures (aquí no hay extensión).
+DO $$ BEGIN RAISE NOTICE 'NEG-06 OK: policy documentada en ADR-010; evidencia real en 13_conflict_real_matrix.sql'; END $$;
 
 -- NEG-07 | PK compuesta → constraint existe y es de 2 columnas
 DO $$

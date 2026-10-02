@@ -195,7 +195,7 @@ completo de Joseph (`lab.producto`, `detalle_factura`, `ticket`, `bitacora`,
 - `CONTRACTS.md` fue actualizado por Joyce el 2026-10-01 con la API real de la
   extensión (§3-4). Ya no es una propuesta: es el contrato vigente.
 - Fase A: se adoptaron ADR-007 (naming oficial §4.10) y ADR-015 (READ por PK vía INOUT);
-  ADR-011 tiene recomendación formal (INVOKER). Todo documentado en `DECISIONS.md`
-  como especificación para implementación de Joyce/Armando.
+  ADR-011 ADOPTADA 01-10 (INVOKER + owner `crud_admin`, verificada contra reales
+  02-10: T3 40/40, discovery 18/0/18/0). Todo documentado en `DECISIONS.md`.
 - Harness verificable por Joyce/Armando: `tests/README.md` + scripts SQL puros,
   probados en PostgreSQL 18 (matriz 7/7, negativas 11/11, demo E2E OK con fixtures).

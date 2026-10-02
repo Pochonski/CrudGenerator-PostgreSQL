@@ -1,9 +1,10 @@
 -- tests/security/09_special_nopk_matrix.sql
--- T6 — Matriz tipos especiales + tabla sin PK (Joseph).
+-- T6 — Matriz tipos especiales + tabla sin PK (Joseph). MODO FIXTURES.
 -- Verifica EXECUTE+tabla reales con SET ROLE + CALL sobre fixtures de
 -- lab.catalogo_especial (quoting/jsonb/boolean/date/numeric/identity) y
--- lab.bitacora (sin PK, POLÍTICA PROVISIONAL: solo insertar+contar; ni
--- actualizar/eliminar por fila ni READ multi-fila, pendiente CR-JOYCE-003).
+-- lab.bitacora (sin PK, convención fixture: solo insertar+contar).
+-- La policy definitiva sin PK (ADR-009, RESUELTA: not_applicable + refcursor)
+-- se prueba contra reales en 12_special_real_matrix.sql.
 -- Esperado OK → success; denegado → 42501; inexistente → P0002;
 -- rutina ausente (policy) → 42883; nulo en NOT NULL → 23502.
 -- Requiere: fixtures/08_special_nopk_fixtures.sql. NOTICEs OK/FAIL.

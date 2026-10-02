@@ -5,10 +5,13 @@
 -- Flujo: Python → PG → extensión → procedures → GRANT/REVOKE → autorizado OK / denegado 42501.
 
 -- DEMO-01: Python verifica extensión (Armando) → hoy: chequeo manual
-DO $$ BEGIN RAISE NOTICE 'DEMO-01: verificar extensión crud_generator (pendiente Joyce+Armando)'; END $$;
+-- (extensión implementada por Joyce; pendiente el tramo Python CR-ARMANDO-001..003)
+DO $$ BEGIN RAISE NOTICE 'DEMO-01: verificar extensión crud_generator (contrato cerrado CONTRACTS.md §3)'; END $$;
 
--- DEMO-02: generar CRUD de lab.producto vía extensión (Joyce)
-DO $$ BEGIN RAISE NOTICE 'DEMO-02: generate_crud(lab, producto) — pendiente CR-JOYCE-002'; END $$;
+-- DEMO-02: generar CRUD de lab.producto vía extensión (contrato cerrado CONTRACTS.md §3;
+-- en este guion la generación la hace el harness/modo reales; pendiente llamarla
+-- desde Python, CR-ARMANDO-001..003)
+DO $$ BEGIN RAISE NOTICE 'DEMO-02: generate_crud(lab, producto) vía extensión (ver modo reales en tests/README.md §11)'; END $$;
 
 -- DEMO-03: aplicar matriz de privilegios (este harness ya lo hace en 04_grants.sql)
 DO $$ BEGIN RAISE NOTICE 'DEMO-03: matriz vendedor/supervisor/administrador aplicada (fixtures)'; END $$;
