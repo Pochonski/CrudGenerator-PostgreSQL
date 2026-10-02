@@ -554,9 +554,13 @@ DECLARE
   v_nonpk crud_generator.column_meta[];
   v_result crud_generator.generation_result;
 BEGIN
+  -- operations vacío/nulo → fila validation_error (CONTRACTS.md §3.3),
+  -- no excepción: Python distingue el caso sin parsear SQLSTATE.
   IF operations IS NULL OR array_length(operations, 1) IS NULL THEN
-    RAISE EXCEPTION 'Debe indicar al menos una operacion (INSERT/READ/UPDATE/DELETE)'
-      USING ERRCODE = '22023';
+    RETURN NEXT ROW(NULL, 'validation_error', schema_name, NULL, NULL,
+      'Debe indicar al menos una operacion (INSERT/READ/UPDATE/DELETE).', NULL)
+      ::crud_generator.generation_result;
+    RETURN;
   END IF;
 
   -- Valida existencia de la tabla (42P01 si no existe, error real, no fila).
