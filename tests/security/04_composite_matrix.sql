@@ -30,12 +30,16 @@ END $$;
 RESET ROLE;
 
 -- MAT-C2 | vendedor → READ por PK completa permitido → SUCCESS (INOUT)
+-- Nota compatibilidad (CONTRACTS.md §3.2, ADR-015): PK de `consultar` real es
+-- INOUT → variables en todas las posiciones dentro de DO (vale con fixture y real).
 SET ROLE crud_vendedor;
 DO $$
 DECLARE
+  v_f integer := 601;
+  v_p integer := 501;
   v_cantidad integer;
 BEGIN
-  CALL lab.detalle_factura_consultar(601, 501, v_cantidad);
+  CALL lab.detalle_factura_consultar(v_f, v_p, v_cantidad);
   IF v_cantidad = 5 THEN
     RAISE NOTICE 'MAT-C2 OK: vendedor READ devuelve cantidad=%', v_cantidad;
   ELSE
@@ -76,10 +80,12 @@ RESET ROLE;
 SET ROLE crud_supervisor;
 DO $$
 DECLARE
+  v_f integer := 601;
+  v_p integer := 501;
   v_cantidad integer;
 BEGIN
   CALL lab.detalle_factura_actualizar(601, 501, 7);
-  CALL lab.detalle_factura_consultar(601, 501, v_cantidad);
+  CALL lab.detalle_factura_consultar(v_f, v_p, v_cantidad);
   IF v_cantidad = 7 THEN
     RAISE NOTICE 'MAT-C5 OK: supervisor UPDATE permitido funciona (cantidad=%)', v_cantidad;
   ELSE
@@ -107,11 +113,13 @@ RESET ROLE;
 SET ROLE crud_administrador;
 DO $$
 DECLARE
+  v_f integer := 601;
+  v_p integer := 501;
   v_cantidad integer;
 BEGIN
   CALL lab.detalle_factura_eliminar(601, 501);
   BEGIN
-    CALL lab.detalle_factura_consultar(601, 501, v_cantidad);
+    CALL lab.detalle_factura_consultar(v_f, v_p, v_cantidad);
     RAISE NOTICE 'MAT-C7 FALLO: la fila debió desaparecer tras DELETE';
   EXCEPTION WHEN OTHERS THEN
     IF SQLSTATE = 'P0002' THEN
@@ -131,24 +139,29 @@ RESET ROLE;
 SET ROLE crud_administrador;
 DO $$
 DECLARE
+  v_f integer := 602;
+  v_p integer;
   v_cantidad integer;
 BEGIN
   CALL lab.detalle_factura_insertar(602, 501, 1);
   CALL lab.detalle_factura_insertar(602, 502, 2);
   -- La segunda columna discrimina: (602,502) debe devolver 2, no 1.
-  CALL lab.detalle_factura_consultar(602, 502, v_cantidad);
+  v_p := 502;
+  CALL lab.detalle_factura_consultar(v_f, v_p, v_cantidad);
   IF v_cantidad <> 2 THEN
     RAISE NOTICE 'MAT-C8 FALLO: consultar(602,502)=% (esperado 2)', v_cantidad;
     RETURN;
   END IF;
   -- UPDATE sobre (602,501) no debe tocar (602,502).
   CALL lab.detalle_factura_actualizar(602, 501, 10);
-  CALL lab.detalle_factura_consultar(602, 502, v_cantidad);
+  v_p := 502;
+  CALL lab.detalle_factura_consultar(v_f, v_p, v_cantidad);
   IF v_cantidad <> 2 THEN
     RAISE NOTICE 'MAT-C8 FALLO: UPDATE(602,501) afectó a (602,502)=%', v_cantidad;
     RETURN;
   END IF;
-  CALL lab.detalle_factura_consultar(602, 501, v_cantidad);
+  v_p := 501;
+  CALL lab.detalle_factura_consultar(v_f, v_p, v_cantidad);
   IF v_cantidad <> 10 THEN
     RAISE NOTICE 'MAT-C8 FALLO: UPDATE(602,501) no aplicó (cantidad=%)', v_cantidad;
     RETURN;
@@ -156,7 +169,8 @@ BEGIN
   -- DELETE sobre (602,501): esa combinación desaparece (P0002) y (602,502) sobrevive.
   CALL lab.detalle_factura_eliminar(602, 501);
   BEGIN
-    CALL lab.detalle_factura_consultar(602, 501, v_cantidad);
+    v_p := 501;
+    CALL lab.detalle_factura_consultar(v_f, v_p, v_cantidad);
     RAISE NOTICE 'MAT-C8 FALLO: (602,501) debió desaparecer tras DELETE';
     RETURN;
   EXCEPTION WHEN OTHERS THEN
@@ -165,7 +179,8 @@ BEGIN
       RETURN;
     END IF;
   END;
-  CALL lab.detalle_factura_consultar(602, 502, v_cantidad);
+  v_p := 502;
+  CALL lab.detalle_factura_consultar(v_f, v_p, v_cantidad);
   IF v_cantidad = 2 THEN
     RAISE NOTICE 'MAT-C8 OK: PK compuesta discrimina por ambas columnas';
   ELSE
@@ -181,9 +196,11 @@ RESET ROLE;
 SET ROLE crud_vendedor;
 DO $$
 DECLARE
+  v_f integer := 999;
+  v_p integer := 999;
   v_cantidad integer;
 BEGIN
-  CALL lab.detalle_factura_consultar(999, 999, v_cantidad);
+  CALL lab.detalle_factura_consultar(v_f, v_p, v_cantidad);
   RAISE NOTICE 'MAT-C9 FALLO: debió reportar fila inexistente P0002';
 EXCEPTION WHEN OTHERS THEN
   IF SQLSTATE = 'P0002' THEN

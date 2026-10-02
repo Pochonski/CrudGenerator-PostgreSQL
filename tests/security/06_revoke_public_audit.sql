@@ -210,11 +210,12 @@ END $$;
 SET ROLE crud_supervisor;
 DO $$
 DECLARE
+  v_id integer := 701;
   v_nombre text;
   v_precio numeric;
 BEGIN
   CALL lab.producto_actualizar(701, 'RevT4d', 12.99);
-  CALL lab.producto_consultar(701, v_nombre, v_precio);
+  CALL lab.producto_consultar(v_id, v_nombre, v_precio);
   IF v_nombre = 'RevT4d' AND v_precio = 12.99 THEN
     RAISE NOTICE 'REV-01 OK paso 3b: CALL vuelve a funcionar tras GRANT';
   ELSE
