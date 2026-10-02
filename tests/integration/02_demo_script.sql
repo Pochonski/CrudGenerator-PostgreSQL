@@ -14,12 +14,14 @@ DO $$ BEGIN RAISE NOTICE 'DEMO-02: generate_crud(lab, producto) — pendiente CR
 DO $$ BEGIN RAISE NOTICE 'DEMO-03: matriz vendedor/supervisor/administrador aplicada (fixtures)'; END $$;
 
 -- DEMO-04: usuario autorizado — vendedor INSERT + READ
+-- Nota compatibilidad (CONTRACTS.md §3.2): `consultar` real usa PK INOUT,
+-- por eso se pasa variable (no literal) para que valga con fixture y con real.
 SET ROLE crud_vendedor;
 DO $$
-DECLARE v_n text; v_p numeric;
+DECLARE v_id integer := 901; v_n text; v_p numeric;
 BEGIN
   CALL lab.producto_insertar(901, 'DemoOK', 15.00);
-  CALL lab.producto_consultar(901, v_n, v_p);
+  CALL lab.producto_consultar(v_id, v_n, v_p);
   RAISE NOTICE 'DEMO-04 OK autorizado: vendedor INSERT+READ nombre=% precio=%', v_n, v_p;
 EXCEPTION WHEN OTHERS THEN RAISE NOTICE 'DEMO-04 FALLO: % %', SQLSTATE, SQLERRM;
 END $$;
