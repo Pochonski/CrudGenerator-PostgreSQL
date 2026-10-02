@@ -9,8 +9,14 @@ aquí se asume aceptada por Joyce o Armando.
 
 ## Joyce — Extensión PostgreSQL
 
+> **Actualización 2026-10-01 (Joyce):** las 5 solicitudes de esta sección quedan
+> **RESUELTAS**. Decisiones registradas en `DECISIONS.md` (ADR-007, ADR-009,
+> ADR-010, ADR-011, ADR-015) y contrato formal en `CONTRACTS.md` §3-4. Se deja
+> el texto original de cada solicitud como registro histórico, con la
+> resolución anotada debajo de cada una.
+
 ### CR-JOYCE-001 — Diseño de READ
-Estado: **DECISIÓN EN CAMINO** — propuesta formal lista (ADR-015), falta que Joyce la confirme/ajuste
+Estado: **RESUELTA** — ADR-015 adoptado tal cual propuesto. Ver `CONTRACTS.md` §3.2/§4.
 
 Contexto: el enunciado §4.5 permite "recuperar información de la tabla de acuerdo con los
 criterios definidos por el equipo", por lo que READ ya no es un bloqueo técnico: es una
@@ -30,7 +36,8 @@ Alternativas evaluadas y descartadas por ahora:
 - Refcursor OUT para multi-fila: documentado como opción, NO requerido para la entrega.
 
 ### CR-JOYCE-002 — Naming, esquema y firmas de procedures generados
-Estado: **PARCIALMENTE RESUELTO** — naming adoptado; pendiente firmas/esquema/anti-colisión
+Estado: **RESUELTA** — esquema destino = esquema de la tabla; tipos vía
+`format_type`; sin anti-colisión especial (ver ADR-007 y `CONTRACTS.md` §3.2).
 
 Resuelto (ADR-007, adoptado): convención del propio enunciado §4.10.
 
@@ -50,7 +57,8 @@ Por qué afecta nuestra área:
   recibir los nombres reales sin rehacer trabajo.
 
 ### CR-JOYCE-003 — Tablas sin PK
-Estado: **REQUIERE COORDINACIÓN** (no bloquea el lab, sí la matriz final)
+Estado: **RESUELTA** — INSERT normal; READ pasa a listado completo (`refcursor
+OUT`); UPDATE/DELETE devuelven `status='not_applicable'`, no se generan. Ver ADR-009.
 
 Necesitamos definir:
 - ¿Se generan solo INSERT/READ y UPDATE/DELETE se reportan "no aplicables"?
@@ -63,7 +71,9 @@ Alternativas que proponemos al equipo:
 - Generar lo aplicable + resultado estructurado `not_applicable` por operación.
 
 ### CR-JOYCE-004 — Procedures existentes
-Estado: **REQUIERE COORDINACIÓN**
+Estado: **RESUELTA** — error (`status='procedure_conflict'`) por defecto;
+reemplazo solo con `do_replace=true` usando `CREATE OR REPLACE PROCEDURE`
+(preserva GRANTs existentes, nunca `DROP+CREATE`). Ver ADR-010.
 
 Necesitamos definir:
 - ¿Error / reemplazo / drop+create / tratamiento según firma?
@@ -76,7 +86,9 @@ Alternativa propuesta:
   solo con flag explícito del administrador.
 
 ### CR-JOYCE-005 — Owner y cláusula SECURITY que emitirá la extensión
-Estado: **REQUIERE COORDINACIÓN** (condiciona ADR-011 que ya tiene recomendación formal)
+Estado: **RESUELTA** — INVOKER adoptado tal cual la recomendación de Joseph;
+owner confirmado `crud_admin` (el mismo rol ya definido en `01_roles.sql`,
+sin introducir un rol nuevo). Ver ADR-011.
 
 Contexto: el área Seguridad adoptó una **recomendación formal** en ADR-011: `SECURITY
 INVOKER` por defecto, con evidencia del experimento (EXP-01/02). La decisión global se
@@ -142,9 +154,9 @@ Por qué afecta nuestra área:
 
 ## Notas compartidas
 
-- Fecha de entrega (ADR-014): **PENDIENTE DE CONFIRMACIÓN CON DOCENTE**
-  (2021 vs 2026 en el enunciado). No asumimos ninguna.
-- `CONTRACTS.md` no se modificó en Fase 0: no inventamos firmas de Joyce.
+- Fecha de entrega (ADR-014): **CONFIRMADA — domingo 4 de octubre de 2026.**
+- `CONTRACTS.md` fue actualizado por Joyce el 2026-10-01 con la API real de la
+  extensión (§3-4). Ya no es una propuesta: es el contrato vigente.
 - Fase A: se adoptaron ADR-007 (naming oficial §4.10) y ADR-015 (READ por PK vía INOUT);
   ADR-011 tiene recomendación formal (INVOKER). Todo documentado en `DECISIONS.md`
   como especificación para implementación de Joyce/Armando.

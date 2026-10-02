@@ -96,15 +96,27 @@ cliente_eliminar
 **Justificación:** es la convención que usa el propio profesor en §4.10, por lo que no
 queda a criterio del equipo.
 
-**Especificación para implementación (Joyce):**
-- El nombre se compone en la extensión como `<tabla_quoated>_<operacion>`.
-- `tabla` se identifica con `quote_ident`/`%I` antes de concatenar el sufijo de operación
+**Especificación para implementación (Joyce) — CR-JOYCE-002 cerrada:**
+- El nombre textual (sin quotear) se compone como `<tabla>_<operacion>`; se
+  quotea como una unidad con `quote_ident`/`%I` al momento de emitir el DDL
   (los identificadores NO son valores ordinarios, ADR-013).
-- Esquema destino de los procedures generados: **pendiente de confirmar con Joyce**
-  (se recomienda el mismo esquema de la tabla). Ver CR-JOYCE-002.
-- Regla anti-colisión con overloads/nombres especiales: **pendiente de definir por Joyce**
-  (opción base: los 4 nombres por tabla son únicos por construcción; las colisiones solo
-  podrían darse por overloads que el generador evita al no repetir firmas). Ver CR-JOYCE-002.
+- **Esquema destino (adoptado):** el mismo esquema de la tabla de origen.
+  `lab.producto` → procedures en `lab`. Evita pedir `CREATE` sobre un esquema
+  arbitrario y mantiene `SET search_path` simple (ADR-011).
+- **Tipos y orden de parámetros (adoptado):** se derivan en tiempo real con
+  `format_type(atttypid, atttypmod)` sobre `pg_attribute` (nunca un mapeo de
+  tipos escrito a mano), preservando precisión/escala/longitud reales
+  (`numeric(10,2)`, `varchar(50)`, etc.):
+  - `insertar`/`actualizar`: columnas insertables/actualizables en
+    `ordinal_position` (ver reglas de DEFAULT/IDENTITY más abajo en esta
+    sección y en `CONTRACTS.md` §3.2).
+  - `consultar`: PK primero, resto después (orden ya fijado en ADR-015).
+  - `eliminar`: solo columnas PK, en su orden ordinal entre ellas.
+- **Regla anti-colisión (adoptada):** no se necesita lógica especial. El
+  nombre es único por construcción dentro de un esquema (una tabla no puede
+  tener dos nombres) y no se soportan overloads: cada procedure generado
+  tiene siempre una única firma. El único conflicto real posible es que ya
+  exista un objeto con ese nombre, cubierto por ADR-010 (CR-JOYCE-004).
 
 **Ejemplos de firma conceptual (base para ADR-015 y CR-JOYCE-002):**
 
@@ -142,19 +154,49 @@ Los tipos exactos y el orden los confirma Joyce según los catálogos (CR-JOYCE-
 
 ## ADR-009 — Tablas sin PK
 
-**Estado:** Pendiente de cierre
+**Estado:** Adoptada (Joyce, cierra CR-JOYCE-003)
 
-**Principio:** No inventar una PK.
+**Decisión:** No se inventa una PK (ni `ctid` ni sustitutos). Por tabla sin PK:
 
-**Pregunta a cerrar:** si se generan únicamente operaciones aplicables o se reportan determinadas operaciones como no disponibles.
+- `INSERT` (`<tabla>_insertar`): se genera normal, no depende de PK.
+- `READ` (`<tabla>_consultar`): no existe forma de buscar "una fila" sin PK, así
+  que se genera una variante de **listado completo** vía `PROCEDURE` con
+  parámetro `OUT refcursor` (abre un cursor con `SELECT *` de toda la tabla).
+  Es la alternativa multi-fila que ya estaba documentada como opción válida en
+  ADR-015, aplicada aquí porque sí es necesaria (no hay PK para el modo de una
+  fila).
+- `UPDATE` / `DELETE`: **no se generan**. `generate_crud` devuelve para esas
+  operaciones una fila de resultado con `status = 'not_applicable'` y mensaje
+  explicando que la tabla no tiene clave primaria. No se crea ningún procedure
+  para ellas.
+
+**Razón:** el enunciado liga identificación de fila a la PK explícitamente
+("cuando la tabla disponga de ella"); usar `ctid` sería inventar una
+pseudo-clave inestable (cambia con `VACUUM FULL`/reescritura de fila), lo que
+viola el principio ya adoptado de no inventar PK.
 
 ---
 
 ## ADR-010 — Procedimientos existentes
 
-**Estado:** Pendiente de cierre
+**Estado:** Adoptada (Joyce, cierra CR-JOYCE-004)
 
-**Pregunta a cerrar:** política ante procedimientos existentes: reemplazo, error, o tratamiento diferenciado según firma.
+**Decisión:** Por defecto, si ya existe un procedure con la firma exacta que la
+extensión va a generar, `generate_crud` devuelve `status = 'procedure_conflict'`
+para esa operación y no modifica nada.
+
+Si el llamador pasa explícitamente `replace => true`, la extensión usa
+`CREATE OR REPLACE PROCEDURE` — **nunca** `DROP` seguido de `CREATE`. Motivo
+técnico: `CREATE OR REPLACE` conserva el OID del objeto y por lo tanto
+conserva los `GRANT EXECUTE` ya otorgados; un `DROP + CREATE` crea un objeto
+nuevo y destruye silenciosamente toda la matriz de privilegios ya aplicada
+por Joseph/Armando. Dado que el proyecto depende de una matriz de privilegios
+estable, perder los GRANTs en cada regeneración sería un defecto grave.
+
+Si el objeto existente con ese nombre **no** es un procedure (función, tabla,
+vista, etc.), no se puede usar `CREATE OR REPLACE` entre tipos de objeto
+distintos → también se reporta `procedure_conflict`, con mensaje que aclara
+que requiere intervención manual del administrador.
 
 ---
 
@@ -233,11 +275,21 @@ Los tipos exactos y el orden los confirma Joyce según los catálogos (CR-JOYCE-
      sin `EXECUTE` no hay acceso aunque la tabla sea inaccesible. Menos intuitivo
      para explicar "tres niveles de acceso" si todo pasa por una sola llave.
 
-### Recomendación formal del área Seguridad (Joseph) — pendiente de voto del equipo
+### Decisión final (Joyce, cierra CR-JOYCE-005 — votada por el equipo)
 
-**Recomendación:** `SECURITY INVOKER` por defecto para los CRUD generados, reservando
+**Estado:** Adoptada. El equipo adopta la recomendación formal de Joseph tal cual.
+
+**Recomendación adoptada:** `SECURITY INVOKER` por defecto para los CRUD generados, reservando
 `SECURITY DEFINER` solo para casos justificados (ej. API que deba ocultar la tabla base
-o auditoría centralizada).
+o auditoría centralizada, ninguno usado en el alcance actual).
+
+**Owner confirmado:** `crud_admin` (el mismo rol ya definido en
+`tests/fixtures/01_roles.sql`: `NOLOGIN`, dueño de `lab` con `USAGE, CREATE`).
+Las funciones de generación de la extensión deben ejecutarse autenticadas como
+`crud_admin` (o un rol equivalente con `CREATE` sobre el esquema destino) para
+que `crud_admin` quede como owner real de los procedures generados — igual que
+en los fixtures de seguridad ya probados por Joseph. No se introduce un rol
+nuevo.
 
 **Evidencia del experimento (ejecutado en PostgreSQL 18):**
 - `EXP-01` — procedure INVOKER ejecutado por rol sin permiso de tabla → **error 42501**
@@ -255,9 +307,9 @@ o auditoría centralizada).
 4. SQL dinámico (si se usa): identificadores con `%I`/`quote_ident`, valores con
    `USING`/`%L` (ADR-013).
 
-**Condición de adopción:** la decisión global NO se considera cerrada hasta:
-- voto del equipo (los tres integrantes), y
-- confirmación de Joyce sobre el owner real que emitirá (CR-JOYCE-005).
+**Condición de adopción:** cumplida — voto del equipo y confirmación de Joyce
+(owner `crud_admin`) resueltos el 2026-10-01. Ver CR-JOYCE-005 en
+`COORDINATION_REQUESTS.md`.
 
 **Confirmado por el experimento:** INVOKER bloquea sin permiso de tabla (42501),
 DEFINER eleva vía owner (EXP-01/02).
@@ -284,15 +336,24 @@ DEFINER eleva vía owner (EXP-01/02).
 
 ## ADR-014 — Fechas del enunciado
 
-**Estado:** Pendiente de confirmación
+**Estado:** Confirmada (2026-10-01)
 
-**Decisión:** No asumir el año de entrega hasta confirmar con el docente porque el enunciado indica 30 de setiembre de 2021 mientras el inicio indica 2026.
+**Decisión:** Fecha de entrega confirmada: **domingo 4 de octubre de 2026**
+(corrida desde el 30 de setiembre original). Se descarta definitivamente la
+lectura "30 de setiembre de 2021": el texto del enunciado ("jueves 30 de
+setiembre") era internamente consistente solo para 2021 (2021-09-30 es
+jueves; 2026-09-30 es miércoles), lo que confirma que era una plantilla de un
+curso anterior sin actualizar, no un typo de un solo dígito.
+
+**Impacto:** quedan ~3 días desde la confirmación. Prioridad: tener un
+generador funcional end-to-end (INSERT/READ/UPDATE/DELETE, PK simple y
+compuesta, autogenerado, sin PK) antes que pulir casos exóticos adicionales.
 
 ---
 
 ## ADR-015 — Contrato de READ (consultar)
 
-**Estado:** Adoptada como decisión del área Seguridad — **requiere confirmación de Joyce** (CR-JOYCE-001) para cerrarla como contrato global.
+**Estado:** Adoptada — confirmada por Joyce (CR-JOYCE-001) el 2026-10-01, cierra como contrato global.
 
 **Decisión:** `consultar` es un procedure que consulta por **clave primaria completa** y
 devuelve **una fila** mediante parámetros `INOUT`. La firma replica la estructura de la tabla.
@@ -318,10 +379,11 @@ T_consultar(INOUT k1 tipo, ..., INOUT kN tipo, INOUT c1 tipo, ..., INOUT cM tipo
 - Para PK simple el patrón es `(INOUT id_pk tipo, INOUT resto...)` — ejemplo `lab.producto_consultar`.
 - Para PK compuesta todos los componentes van como parámetros — ejemplo `lab.detalle_factura_consultar`.
 
-**Casos pendientes de otros contratos:**
-- Tabla sin PK → READ por PK no aplica; se deriva a CR-JOYCE-003 (listado completo o
-  "no aplicable"). No cerramos este caso hasta respuesta de Joyce.
-- Lectura multi-fila (filtros, listado): opción documentada vía `refcursor OUT`, NO
-  requerida para la entrega a menos que el docente la exija.
-- Comportamiento de tablas sin PK versus listado completo se discutirá en CR-JOYCE-003.
+**Caso tabla sin PK (resuelto, ver ADR-009):** READ por PK no aplica; se genera
+en su lugar un `consultar` de listado completo vía `refcursor OUT`. UPDATE y
+DELETE no se generan (`not_applicable`).
+
+**Lectura multi-fila con filtros (fuera de alcance):** no requerida para la
+entrega; el único caso multi-fila implementado es el listado completo de
+tablas sin PK descrito en ADR-009.
 

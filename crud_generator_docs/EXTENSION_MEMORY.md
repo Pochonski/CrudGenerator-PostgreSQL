@@ -54,9 +54,9 @@ Construir una extensión instalable de PostgreSQL capaz de analizar tablas exist
 
 ## Estado actual
 
-- [ ] Arquitectura interna definida
-- [ ] API pública definida
-- [ ] Catálogos definidos
+- [x] Arquitectura interna definida (API en `CONTRACTS.md` §3, cerrada 2026-10-01)
+- [x] API pública definida
+- [ ] Catálogos definidos (implementación pendiente)
 - [ ] `.control`
 - [ ] Análisis de tablas
 - [ ] INSERT
@@ -72,7 +72,22 @@ Construir una extensión instalable de PostgreSQL capaz de analizar tablas exist
 
 ## Decisiones locales
 
-Registrar aquí decisiones que no cambien contratos globales.
+- **2026-10-01 — Nombre de extensión:** `crud_generator`, confirmando el
+  `DEFAULT_EXTENSION_NAME` provisional de Armando. El `.control` fija
+  `schema = crud_generator` para que `has_schema_privilege` (usado por
+  `ExtensionService.check_extension`) tenga significado real (si fuera
+  `public`, casi cualquier rol tendría USAGE y el estado `NOT_ACCESSIBLE`
+  nunca se daría).
+- **2026-10-01 — Lenguaje:** extensión 100% SQL/PL-pgSQL (sin C), instalable
+  con `CREATE EXTENSION` desde un único script versionado
+  (`extension/sql/crud_generator--1.0.sql`) + `.control`. Confirma ADR-004.
+- **2026-10-01 — Resolución de las 5 CR abiertas por Joseph:** ver ADR-007
+  (naming/esquema/tipos), ADR-009 (sin PK), ADR-010 (conflicto), ADR-011
+  (INVOKER + owner `crud_admin`), ADR-015 (READ). Detalle completo de la API
+  en `CONTRACTS.md` §3-4.
+- **Versión de PostgreSQL objetivo:** 16+ (misma versión que usa
+  `.github/workflows/sql-harness.yml`); se evita cualquier sintaxis que no
+  exista en PG16 aunque los experimentos de Joseph se hayan corrido en PG18.
 
 ## Problemas / descubrimientos
 
@@ -80,4 +95,6 @@ Registrar aquí decisiones que no cambien contratos globales.
 
 ## Requiere coordinación
 
-Registrar aquí cualquier cambio que afecte a Python o seguridad.
+- Ninguna pendiente por ahora. Cuando la implementación arroje firmas reales
+  (tipos exactos vistos por PostgreSQL), se documentarán aquí y en
+  `CONTRACTS.md` siguiendo la regla de `JOYCE_IMPLEMENTATION_HANDOFF.md` §14.

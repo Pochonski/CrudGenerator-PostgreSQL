@@ -39,11 +39,11 @@ Pruebas obligatorias (§9): casos 1-2-3 y 3 roles cubiertos por el laboratorio d
 
 ## Extensión PostgreSQL
 
-- 🟡 Diseño de arquitectura
-- 🔴 API pública (naming adoptado ADR-007; firmas/esquema pendientes CR-JOYCE-002)
-- 🔴 Catálogos
-- 🔴 Generación CRUD
-- 🔴 Casos límite
+- 🟢 Diseño de arquitectura (contrato cerrado, `CONTRACTS.md` §3-4)
+- 🟢 API pública (naming, esquema, tipos y resultado cerrados — ADR-007/009/010/011/015)
+- 🟡 Catálogos (implementación en curso)
+- 🟡 Generación CRUD (implementación en curso)
+- 🟡 Casos límite (diseño cerrado: sin PK, conflicto, autogenerado; falta código)
 
 ## Python
 
@@ -74,14 +74,17 @@ Pruebas obligatorias (§9): casos 1-2-3 y 3 roles cubiertos por el laboratorio d
 
 ## Riesgos actuales
 
-1. **TIEMPO:** si la entrega es 30-09-2026 (ADR-014 pendiente de confirmar), quedan ~8 días
-   y las áreas de Joyce y Armando están en 0% de código. Riesgo crítico de equipo.
-2. Definir firmas/esquema finales de la extensión (CR-JOYCE-002).
-3. Decidir READ multi-fila / sin PK (CR-JOYCE-003) y policy de procedures existentes (CR-JOYCE-004).
-4. Cerrar voto ADR-011 (INVOKER) + confirmar owner/cláusula que emitirá la extensión (CR-JOYCE-005).
+1. **TIEMPO:** entrega confirmada **domingo 4 de octubre de 2026** (ADR-014). Desde
+   el 2026-10-01 quedan ~3 días. Riesgo crítico de equipo: priorizar un flujo E2E
+   funcional sobre pulir casos exóticos.
+2. ~~Definir firmas/esquema finales de la extensión (CR-JOYCE-002).~~ Resuelto 2026-10-01.
+3. ~~Decidir READ multi-fila / sin PK (CR-JOYCE-003) y policy de procedures existentes (CR-JOYCE-004).~~ Resuelto 2026-10-01.
+4. ~~Cerrar voto ADR-011 (INVOKER) + confirmar owner/cláusula que emitirá la extensión (CR-JOYCE-005).~~ Resuelto 2026-10-01.
 5. Definir vía de aplicación de privilegios desde Python (CR-ARMANDO-001) y validación real
-   con SET ROLE + CALL (CR-ARMANDO-003).
-6. Confirmar la fecha de entrega del enunciado (ADR-014) y el formato del vídeo (§10) con el docente.
+   con SET ROLE + CALL (CR-ARMANDO-003). Pendiente de Armando.
+6. ~~Confirmar la fecha de entrega del enunciado (ADR-014)~~ Confirmada. Falta confirmar
+   formato exacto del vídeo (§10) con el docente si hiciera falta.
+7. Implementación real de la extensión (código) — en curso por Joyce a partir de 2026-10-01.
 
 ## Últimas decisiones
 
