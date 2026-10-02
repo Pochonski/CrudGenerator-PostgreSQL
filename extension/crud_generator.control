@@ -1,0 +1,8 @@
+# crud_generator.control
+# Generador automático de procedimientos CRUD de mantenimiento a partir de
+# los catálogos de PostgreSQL (Bases de Datos II, Primer Proyecto).
+comment = 'Analiza tablas via pg_catalog y genera dinamicamente procedures CRUD'
+default_version = '1.0'
+schema = crud_generator
+relocatable = false
+requires = 'plpgsql'

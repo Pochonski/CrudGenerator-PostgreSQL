@@ -41,9 +41,9 @@ Pruebas obligatorias (§9): casos 1-2-3 y 3 roles cubiertos por el laboratorio d
 
 - 🟢 Diseño de arquitectura (contrato cerrado, `CONTRACTS.md` §3-4)
 - 🟢 API pública (naming, esquema, tipos y resultado cerrados — ADR-007/009/010/011/015)
-- 🟡 Catálogos (implementación en curso)
-- 🟡 Generación CRUD (implementación en curso)
-- 🟡 Casos límite (diseño cerrado: sin PK, conflicto, autogenerado; falta código)
+- 🟢 Catálogos (`analyze_table` implementado y probado: PK simple/compuesta, identity, default, tipos/nombres especiales)
+- 🟢 Generación CRUD (`generate_crud` implementado: INSERT/READ/UPDATE/DELETE probados con ejecución real en las 5 tablas del lab)
+- 🟢 Casos límite (sin PK, conflicto+`do_replace`, autogenerado — implementados y probados contra Postgres 16)
 
 ## Python
 
@@ -65,11 +65,12 @@ Pruebas obligatorias (§9): casos 1-2-3 y 3 roles cubiertos por el laboratorio d
 
 ## Integración
 
-- 🟡 Contratos parcialmente resueltos (ADR-007 naming, ADR-015 READ)
-- 🔴 Python → extensión
-- 🔴 Generación → procedures
+- 🟢 Contratos resueltos (ADR-007/009/010/011/015)
+- 🔴 Python → extensión (pendiente de Armando: `app/` aún no llama `analyze_table`/`generate_crud`)
+- 🟢 Generación → procedures (probado manualmente contra Postgres 16 real)
+- 🟢 Discovery/matriz de Joseph ejecutados sin modificar su lógica contra procedures reales (18/18 OK; MAT-07 necesita ajuste menor, ver COORDINATION_REQUESTS.md)
 - 🔴 Python → roles/permisos
-- 🔴 Prueba E2E
+- 🟡 Prueba E2E (falta el tramo Python; la parte PostgreSQL del flujo ya está probada)
 - 🔴 Tabla nueva (tabla_virgen reservada, intacta)
 
 ## Riesgos actuales
@@ -84,23 +85,27 @@ Pruebas obligatorias (§9): casos 1-2-3 y 3 roles cubiertos por el laboratorio d
    con SET ROLE + CALL (CR-ARMANDO-003). Pendiente de Armando.
 6. ~~Confirmar la fecha de entrega del enunciado (ADR-014)~~ Confirmada. Falta confirmar
    formato exacto del vídeo (§10) con el docente si hiciera falta.
-7. Implementación real de la extensión (código) — en curso por Joyce a partir de 2026-10-01.
+7. ~~Implementación real de la extensión (código)~~ Completa y probada 2026-10-02
+   (`extension/`, ver EXTENSION_MEMORY.md). Pendiente: que Armando integre `app/`
+   contra la API real en vez de detenerse antes de generar.
 
 ## Últimas decisiones
 
-- **ADR-007 (Adoptada):** convención `<tabla>_{insertar,consultar,actualizar,eliminar}` (§4.10).
-- **ADR-015 (Adoptada, pendiente Joyce):** READ por PK completa vía INOUT.
-- **ADR-011 (Recomendación formal):** INVOKER por defecto, evidencia EXP-01/02; voto pendiente.
-- Ver `DECISIONS.md` (ADR-001..015) y `COORDINATION_REQUESTS.md` (CR-JOYCE-001..005, CR-ARMANDO-001..003).
-- `CONTRACTS.md` sin cambios en Fases 0/A (no se inventaron firmas de Joyce).
+- **ADR-007 (Adoptada):** convención `<tabla>_{insertar,consultar,actualizar,eliminar}` (§4.10),
+  esquema destino = esquema de la tabla, tipos vía `format_type`.
+- **ADR-015 (Adoptada y confirmada por Joyce):** READ por PK completa vía INOUT; sin PK, listado vía `refcursor OUT`.
+- **ADR-011 (Adoptada):** INVOKER por defecto, owner `crud_admin`; verificado 18/18 en discovery real.
+- **ADR-009/010 (Adoptadas):** política de tabla sin PK y de conflicto de procedures (`do_replace` con `CREATE OR REPLACE`).
+- **ADR-014 (Confirmada):** entrega domingo 4 de octubre de 2026.
+- Ver `DECISIONS.md` (ADR-001..015) y `COORDINATION_REQUESTS.md` (CR-JOYCE-001..005 resueltas, CR-ARMANDO-001..003 pendientes).
+- `CONTRACTS.md` actualizado 2026-10-01/02 con la API real de la extensión (ya no es propuesta).
 
 ## Próximos hitos
 
-1. Confirmar fecha de entrega y formato de vídeo con el docente.
-2. Congelar contratos (firmas/esquema — Joyce responde CR-JOYCE-002; READ CR-JOYCE-001).
-3. Crear prototipo mínimo de extensión (Joyce).
-4. Crear conexión Python (Armando), incluidos 4 estados de detección y selección una/varias/todas.
-5. Votar ADR-011 y confirmar owner (CR-JOYCE-005).
-6. Sustituir fixtures por procedures reales; re-ejecutar MAT/NEG.
-7. Probar tabla_virgen (tabla desconocida).
-8. Preparar vídeo de evidencia y demo en vivo (10 pasos §10/§11).
+1. ~~Congelar contratos~~ Hecho (CR-JOYCE-001..005 resueltas 2026-10-01).
+2. ~~Implementar la extensión~~ Hecho y probada 2026-10-02 (ver EXTENSION_MEMORY.md).
+3. Armando: integrar `app/` para llamar `crud_generator.analyze_table`/`generate_crud` (ya no mock).
+4. Armando: resolver CR-ARMANDO-001..003 (vía de privilegios, formato de resultado, validación real con SET ROLE).
+5. Joseph: aplicar los dos ajustes reportados en COORDINATION_REQUESTS.md (fix de discovery ya aplicado por Joyce; MAT-07 pendiente de su ajuste) y re-ejecutar MAT/NEG completos contra procedures reales.
+6. Probar tabla_virgen (tabla desconocida) end-to-end desde Python.
+7. Preparar vídeo de evidencia y demo en vivo (10 pasos §10/§11) antes del 2026-10-04.

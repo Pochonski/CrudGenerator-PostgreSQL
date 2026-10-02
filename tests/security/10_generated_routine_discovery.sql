@@ -16,7 +16,7 @@ SELECT
   ) AS search_path,
   pg_get_function_identity_arguments(p.oid) AS identity_arguments,
   pg_get_function_result(p.oid) AS return_type,
-  has_function_privilege('PUBLIC', p.oid, 'EXECUTE') AS public_execute
+  has_function_privilege('public', p.oid, 'EXECUTE') AS public_execute
 FROM pg_proc p
 JOIN pg_namespace n ON n.oid = p.pronamespace
 JOIN pg_roles r ON r.oid = p.proowner
@@ -29,7 +29,7 @@ SELECT
   count(*) AS discovered_procedures,
   count(*) FILTER (WHERE p.prosecdef) AS security_definer,
   count(*) FILTER (WHERE NOT p.prosecdef) AS security_invoker,
-  count(*) FILTER (WHERE has_function_privilege('PUBLIC', p.oid, 'EXECUTE')) AS public_execute_leaks
+  count(*) FILTER (WHERE has_function_privilege('public', p.oid, 'EXECUTE')) AS public_execute_leaks
 FROM pg_proc p
 JOIN pg_namespace n ON n.oid = p.pronamespace
 WHERE n.nspname = COALESCE(NULLIF(current_setting('crudgen.discovery_schema', true), ''), 'lab')

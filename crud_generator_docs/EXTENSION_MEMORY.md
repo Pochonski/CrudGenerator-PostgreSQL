@@ -56,19 +56,20 @@ Construir una extensión instalable de PostgreSQL capaz de analizar tablas exist
 
 - [x] Arquitectura interna definida (API en `CONTRACTS.md` §3, cerrada 2026-10-01)
 - [x] API pública definida
-- [ ] Catálogos definidos (implementación pendiente)
-- [ ] `.control`
-- [ ] Análisis de tablas
-- [ ] INSERT
-- [ ] READ
-- [ ] UPDATE
-- [ ] DELETE
-- [ ] PK compuesta
-- [ ] Autogenerados/identity/default
-- [ ] Tabla sin PK
-- [ ] Conflicto de procedimientos
-- [ ] Pruebas aisladas
-- [ ] Integración con Python
+- [x] Catálogos definidos (`crud_generator._table_columns`, `pg_attribute`/`pg_attrdef`/`pg_index`)
+- [x] `.control` (`extension/crud_generator.control`, `schema = crud_generator`, `default_version = '1.0'`)
+- [x] Análisis de tablas (`crud_generator.analyze_table`, probado en las 5 tablas del lab)
+- [x] INSERT (DEFAULT/IDENTITY BY DEFAULT con `OVERRIDING SYSTEM VALUE`, mandatorios reordenados antes que opcionales)
+- [x] READ (PK vía INOUT + P0002; sin PK vía `refcursor OUT`)
+- [x] UPDATE (por PK, excluye columnas GENERATED)
+- [x] DELETE (por PK)
+- [x] PK compuesta (`lab.detalle_factura`, probado INSERT/READ/UPDATE/DELETE reales)
+- [x] Autogenerados/identity/default (`lab.ticket`, `lab.catalogo_especial`, probado)
+- [x] Tabla sin PK (`lab.bitacora`: INSERT + READ listado, UPDATE/DELETE `not_applicable`)
+- [x] Conflicto de procedimientos (`procedure_conflict` por defecto; `do_replace=true` con `CREATE OR REPLACE`, GRANTs preservados — verificado)
+- [x] Pruebas aisladas (manuales contra Postgres 16 en Docker, ver sección siguiente)
+- [x] Integración con Python (signatures documentadas en `CONTRACTS.md`; nombre de extensión `crud_generator` confirma el `DEFAULT_EXTENSION_NAME` de Armando)
+- [ ] Integración formal con `app/` (Armando aún no consume `generate_crud`/`analyze_table` desde Python)
 
 ## Decisiones locales
 
@@ -91,10 +92,44 @@ Construir una extensión instalable de PostgreSQL capaz de analizar tablas exist
 
 ## Problemas / descubrimientos
 
-- Ninguno registrado todavía.
+- **Orden de parámetros de `_insertar`:** PostgreSQL exige que todo parámetro
+  con `DEFAULT` venga después de todos los que no tienen `DEFAULT`; el orden
+  ordinal de la tabla no garantiza eso. Se corrigió reordenando: obligatorios
+  primero, opcionales después (ambos grupos en orden ordinal interno). Ver
+  `CONTRACTS.md` §3.2 (INSERT).
+- **`OPEN cursor WITH HOLD FOR EXECUTE ...` no es sintaxis válida en PL/pgSQL**
+  (el modificador `WITH HOLD` no existe en esa forma). El `consultar` sin PK
+  usa `OPEN resultado FOR EXECUTE ...` simple; el cliente debe hacer `FETCH`
+  en la misma transacción del `CALL` (ya reflejado en `CONTRACTS.md`).
+- **Bug de un carácter en el discovery de Joseph** (`has_function_privilege('PUBLIC', ...)`
+  debía ser `'public'` en minúsculas): corregido directamente en
+  `tests/security/10_generated_routine_discovery.sql` por ser un error
+  objetivo, no una decisión de diseño.
+- **`CALL` con literales en parámetros INOUT falla dentro de bloques PL/pgSQL**
+  (no al usarlo desde un cliente): confirmado que `tests/security/01_matrix.sql`
+  MAT-07 necesita variables en todas las posiciones al apuntar a `consultar`
+  real (PK también INOUT por ADR-015, a diferencia del fixture de Joseph).
+  Registrado como nota de coordinación para Joseph en `COORDINATION_REQUESTS.md`.
+
+## Validación realizada (2026-10-02, Postgres 16 en Docker)
+
+- `analyze_table`: PK simple, PK compuesta, IDENTITY ALWAYS/BY DEFAULT,
+  DEFAULT, tipos especiales (`numeric(12,2)`, `jsonb`, `boolean`, `date`),
+  nombres con espacios/acentos (`"Nombre Ítem"`, `"precio$"`).
+- `generate_crud` + ejecución real de INSERT/READ/UPDATE/DELETE en las 5
+  tablas del laboratorio de Joseph, incluyendo error `P0002` en fila
+  inexistente y `OVERRIDING SYSTEM VALUE` para identity BY DEFAULT.
+- Política de conflicto: `procedure_conflict` (42723/42P13) por defecto;
+  `do_replace=true` regenera con `CREATE OR REPLACE` y se verificó que un
+  `GRANT EXECUTE` previo a `crud_vendedor` sobrevive intacto a la regeneración.
+- Harness externo de Joseph ejecutado sin modificar su lógica: discovery
+  (18/18 `crud_admin`/INVOKER/search_path correcto/sin EXECUTE a PUBLIC),
+  `04_grants.sql` + `01_matrix.sql` (MAT-01..06 OK contra procedures reales;
+  MAT-07 requiere el ajuste de variables ya reportado).
 
 ## Requiere coordinación
 
-- Ninguna pendiente por ahora. Cuando la implementación arroje firmas reales
-  (tipos exactos vistos por PostgreSQL), se documentarán aquí y en
-  `CONTRACTS.md` siguiendo la regla de `JOYCE_IMPLEMENTATION_HANDOFF.md` §14.
+- Ver la sección nueva en `COORDINATION_REQUESTS.md` (hallazgos 2026-10-02
+  para Joseph: fix del discovery y ajuste de MAT-07).
+- Pendiente de Armando: integrar `app/` para llamar `crud_generator.analyze_table`
+  y `crud_generator.generate_crud` en vez de detenerse antes de generar.

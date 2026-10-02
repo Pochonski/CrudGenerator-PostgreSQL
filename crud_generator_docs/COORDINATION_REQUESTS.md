@@ -152,6 +152,34 @@ Por qué afecta nuestra área:
 
 ---
 
+## Nuevo — hallazgos de Joyce al integrar la implementación real (2026-10-02)
+
+Implementé la extensión (`extension/`) y la probé contra el laboratorio
+completo de Joseph (`lab.producto`, `detalle_factura`, `ticket`, `bitacora`,
+`catalogo_especial`) más su propio harness. Dos hallazgos para Joseph:
+
+1. **Bug de un carácter en `tests/security/10_generated_routine_discovery.sql`:**
+   usaba `has_function_privilege('PUBLIC', ...)` (mayúsculas) que PostgreSQL
+   rechaza con `role "PUBLIC" does not exist`; el pseudo-rol se escribe en
+   minúsculas (`'public'`). Lo corregí directamente (dos ocurrencias) porque
+   era un bug objetivo, no una decisión de diseño. Con el fix, el discovery
+   corrió limpio contra las 18 rutinas reales: 18/18 owner `crud_admin`,
+   18/18 `INVOKER`, 18/18 `search_path=lab, pg_temp`, 0 fugas de EXECUTE a
+   PUBLIC.
+2. **`tests/security/01_matrix.sql` MAT-07 necesita un ajuste menor contra
+   routines reales:** corrí `04_grants.sql` + `01_matrix.sql` sin tocarlos
+   contra mis procedures reales de `lab.producto` (firmas idénticas a tu
+   fixture) — MAT-01 a MAT-06 pasaron sin cambios. MAT-07 falla con
+   `42601 ... parameter "p_1" is an output parameter but corresponding
+   argument is not writable` porque en el contrato real (ADR-015) **la PK
+   también es INOUT** en `consultar` (tu fixture la declaraba `IN`). Llamar
+   `CALL producto_consultar(102, v_nombre, v_precio)` con un literal en la
+   posición de la PK falla solo cuando el `CALL` se emite **desde dentro de
+   otro bloque PL/pgSQL**; necesita una variable en las tres posiciones
+   (`CALL producto_consultar(v_id, v_nombre, v_precio)`), confirmado que
+   funciona así. Un `CALL` directo de cliente (psql top-level, psycopg) no
+   tiene esta restricción. Detalle completo en `CONTRACTS.md` §3.2 (READ).
+
 ## Notas compartidas
 
 - Fecha de entrega (ADR-014): **CONFIRMADA — domingo 4 de octubre de 2026.**
