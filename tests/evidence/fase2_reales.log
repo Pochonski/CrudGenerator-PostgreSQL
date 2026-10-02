@@ -1,0 +1,296 @@
+FASE 2 - MODO REALES - PG18 local - 2026-10-02
+NOTICE:  eliminando adem+ís 24 objetos m+ís
+DETAIL:  eliminando adem+ís tabla lab.producto
+eliminando adem+ís tabla lab.detalle_factura
+eliminando adem+ís tabla lab.ticket
+eliminando adem+ís tabla lab.bitacora
+eliminando adem+ís tabla lab.catalogo_especial
+eliminando adem+ís tabla lab.tabla_virgen
+eliminando adem+ís funci+¦n lab.producto_insertar(integer,text,numeric)
+eliminando adem+ís funci+¦n lab.producto_consultar(integer,text,numeric)
+eliminando adem+ís funci+¦n lab.producto_actualizar(integer,text,numeric)
+eliminando adem+ís funci+¦n lab.producto_eliminar(integer)
+eliminando adem+ís funci+¦n lab.detalle_factura_insertar(integer,integer,integer)
+eliminando adem+ís funci+¦n lab.detalle_factura_consultar(integer,integer,integer)
+eliminando adem+ís funci+¦n lab.detalle_factura_actualizar(integer,integer,integer)
+eliminando adem+ís funci+¦n lab.detalle_factura_eliminar(integer,integer)
+eliminando adem+ís funci+¦n lab.ticket_insertar(integer,text,timestamp with time zone)
+eliminando adem+ís funci+¦n lab.ticket_consultar(integer,text,timestamp with time zone)
+eliminando adem+ís funci+¦n lab.ticket_actualizar(integer,text)
+eliminando adem+ís funci+¦n lab.ticket_eliminar(integer)
+eliminando adem+ís funci+¦n lab.catalogo_especial_insertar(integer,text,numeric,boolean,jsonb,date)
+eliminando adem+ís funci+¦n lab.catalogo_especial_consultar(integer,text,numeric,boolean,jsonb,date)
+eliminando adem+ís funci+¦n lab.catalogo_especial_actualizar(integer,text,numeric,boolean,jsonb,date)
+eliminando adem+ís funci+¦n lab.catalogo_especial_eliminar(integer)
+eliminando adem+ís funci+¦n lab.bitacora_insertar(integer,text)
+eliminando adem+ís funci+¦n lab.bitacora_contar(integer,integer)
+DROP SCHEMA
+ERROR:  no existe el esquema -½crud_generator-+
+==> extension install (schema + sql)
+CREATE SCHEMA
+extension-instalada
+
+==> tests/fixtures/01_roles.sql
+
+==> tests/fixtures/02_schema.sql
+psql:tests/fixtures/02_schema.sql:9: NOTICE:  la tabla -½detalle_factura-+ no existe, omitiendo
+psql:tests/fixtures/02_schema.sql:10: NOTICE:  la tabla -½producto-+ no existe, omitiendo
+psql:tests/fixtures/02_schema.sql:26: NOTICE:  la tabla -½ticket-+ no existe, omitiendo
+psql:tests/fixtures/02_schema.sql:34: NOTICE:  la tabla -½bitacora-+ no existe, omitiendo
+psql:tests/fixtures/02_schema.sql:42: NOTICE:  la tabla -½catalogo_especial-+ no existe, omitiendo
+psql:tests/fixtures/02_schema.sql:56: NOTICE:  la tabla -½tabla_virgen-+ no existe, omitiendo
+
+==> generate x5 (crud_admin)
+lab.producto_insertar success
+lab.producto_consultar success
+lab.producto_actualizar success
+lab.producto_eliminar success
+lab.detalle_factura_insertar success
+lab.detalle_factura_consultar success
+lab.detalle_factura_actualizar success
+lab.detalle_factura_eliminar success
+lab.ticket_insertar success
+lab.ticket_consultar success
+lab.ticket_actualizar success
+lab.ticket_eliminar success
+lab.bitacora_insertar success
+lab.bitacora_consultar success
+lab.catalogo_especial_insertar success
+lab.catalogo_especial_consultar success
+lab.catalogo_especial_actualizar success
+lab.catalogo_especial_eliminar success
+==> 04_grants + grants reales
+grants-reales-aplicados
+
+==> tests/security/01_matrix.sql
+psql:tests/security/01_matrix.sql:15: NOTICE:  MAT-01 OK: vendedor INSERT permitido funciona
+psql:tests/security/01_matrix.sql:28: NOTICE:  MAT-02 OK: vendedor UPDATE rechazado con 42501
+psql:tests/security/01_matrix.sql:41: NOTICE:  MAT-03 OK: vendedor DELETE rechazado con 42501
+psql:tests/security/01_matrix.sql:52: NOTICE:  MAT-04 OK: supervisor UPDATE permitido funciona
+psql:tests/security/01_matrix.sql:65: NOTICE:  MAT-05 OK: supervisor DELETE rechazado con 42501
+psql:tests/security/01_matrix.sql:76: NOTICE:  MAT-06 OK: administrador DELETE permitido funciona
+psql:tests/security/01_matrix.sql:95: NOTICE:  MAT-07 OK: vendedor READ devuelve nombre=Mouse precio=10.00
+
+==> tests/security/04_composite_matrix.sql
+psql:tests/security/04_composite_matrix.sql:29: NOTICE:  MAT-C1 OK: vendedor INSERT PK compuesta permitido funciona
+psql:tests/security/04_composite_matrix.sql:50: NOTICE:  MAT-C2 OK: vendedor READ devuelve cantidad=5
+psql:tests/security/04_composite_matrix.sql:63: NOTICE:  MAT-C3 OK: vendedor UPDATE rechazado con 42501
+psql:tests/security/04_composite_matrix.sql:76: NOTICE:  MAT-C4 OK: vendedor DELETE rechazado con 42501
+psql:tests/security/04_composite_matrix.sql:96: NOTICE:  MAT-C5 OK: supervisor UPDATE permitido funciona (cantidad=7)
+psql:tests/security/04_composite_matrix.sql:109: NOTICE:  MAT-C6 OK: supervisor DELETE rechazado con 42501
+psql:tests/security/04_composite_matrix.sql:133: NOTICE:  MAT-C7 OK: administrador DELETE cierra el ciclo (fila inexistente P0002)
+psql:tests/security/04_composite_matrix.sql:191: NOTICE:  MAT-C8 OK: PK compuesta discrimina por ambas columnas
+psql:tests/security/04_composite_matrix.sql:211: NOTICE:  MAT-C9 OK: fila inexistente reporta P0002
+
+==> tests/security/11_ticket_real_matrix.sql
+psql:tests/security/11_ticket_real_matrix.sql:45: NOTICE:  TIXR-00 OK: id_ticket GENERATED ALWAYS + DEFAULTs en codigo/creado_en
+psql:tests/security/11_ticket_real_matrix.sql:73: NOTICE:  MAT-T1R OK: vendedor INSERT real id_generado=2 creado_en=2026-10-02 14:10:11.647283-06
+psql:tests/security/11_ticket_real_matrix.sql:96: NOTICE:  MAT-T2R OK: vendedor READ real devuelve codigo=TIXR-T2 (id=3)
+psql:tests/security/11_ticket_real_matrix.sql:112: NOTICE:  MAT-T3R OK: vendedor UPDATE rechazado con 42501
+psql:tests/security/11_ticket_real_matrix.sql:128: NOTICE:  MAT-T4R OK: vendedor DELETE rechazado con 42501
+psql:tests/security/11_ticket_real_matrix.sql:150: NOTICE:  MAT-T5R OK: supervisor UPDATE real funciona (id=1)
+psql:tests/security/11_ticket_real_matrix.sql:166: NOTICE:  MAT-T6R OK: supervisor DELETE rechazado con 42501
+psql:tests/security/11_ticket_real_matrix.sql:191: NOTICE:  MAT-T7R OK: administrador DELETE cierra el ciclo (P0002)
+psql:tests/security/11_ticket_real_matrix.sql:209: NOTICE:  MAT-T8R OK: DEFAULT aplicado creado_en=2026-10-02 14:10:11.653778-06
+psql:tests/security/11_ticket_real_matrix.sql:232: NOTICE:  MAT-T9R OK: DEFAULT aplicado codigo=SIN-CODIGO (id=5)
+psql:tests/security/11_ticket_real_matrix.sql:282: NOTICE:  TIXR-AUD OK: lab.ticket_insertar(text,timestamp with time zone) owner+INVOKER+search_path+PUBLIC conformes
+psql:tests/security/11_ticket_real_matrix.sql:282: NOTICE:  TIXR-AUD OK: lab.ticket_consultar(integer,text,timestamp with time zone) owner+INVOKER+search_path+PUBLIC conformes
+psql:tests/security/11_ticket_real_matrix.sql:282: NOTICE:  TIXR-AUD OK: lab.ticket_actualizar(integer,text,timestamp with time zone) owner+INVOKER+search_path+PUBLIC conformes
+psql:tests/security/11_ticket_real_matrix.sql:282: NOTICE:  TIXR-AUD OK: lab.ticket_eliminar(integer) owner+INVOKER+search_path+PUBLIC conformes
+psql:tests/security/11_ticket_real_matrix.sql:282: NOTICE:  TIXR-AUD RESULTADO: 4/4 conformes
+
+==> tests/security/12_special_real_matrix.sql
+psql:tests/security/12_special_real_matrix.sql:48: NOTICE:  S-00R OK: catalogo PK simple + bitacora sin PK + quoting "Nombre +ìtem"/"precio$"
+psql:tests/security/12_special_real_matrix.sql:80: NOTICE:  MAT-S1R OK: vendedor INSERT real especial id=2
+psql:tests/security/12_special_real_matrix.sql:101: NOTICE:  MAT-S2R OK: round-trip exacto tipos especiales (id=2)
+psql:tests/security/12_special_real_matrix.sql:117: NOTICE:  MAT-S3R OK: vendedor UPDATE rechazado con 42501
+psql:tests/security/12_special_real_matrix.sql:133: NOTICE:  MAT-S4R OK: vendedor DELETE rechazado con 42501
+psql:tests/security/12_special_real_matrix.sql:154: NOTICE:  MAT-S5R OK: supervisor UPDATE real especial funciona (id=1)
+psql:tests/security/12_special_real_matrix.sql:170: NOTICE:  MAT-S6R OK: supervisor DELETE rechazado con 42501
+psql:tests/security/12_special_real_matrix.sql:194: NOTICE:  MAT-S7R OK: administrador DELETE cierra el ciclo (P0002)
+psql:tests/security/12_special_real_matrix.sql:215: NOTICE:  MAT-S8R OK: DEFAULTs 0/true/{}/hoy aplicados por el esquema
+psql:tests/security/12_special_real_matrix.sql:239: NOTICE:  MAT-B1R OK: vendedor INSERT+READ-refcursor sin PK (n=2 LOGR-*)
+psql:tests/security/12_special_real_matrix.sql:262: NOTICE:  MAT-B2R OK: supervisor INSERT+READ-refcursor sin PK
+psql:tests/security/12_special_real_matrix.sql:285: NOTICE:  MAT-B3R OK: administrador INSERT+READ-refcursor sin PK
+psql:tests/security/12_special_real_matrix.sql:308: NOTICE:  B-POL OK: UPDATE/DELETE sin PK ÔåÆ not_applicable (ADR-009)
+psql:tests/security/12_special_real_matrix.sql:321: NOTICE:  N-P1R OK: sin actualizar por fila (42883, ADR-009)
+psql:tests/security/12_special_real_matrix.sql:334: NOTICE:  N-P2R OK: sin eliminar por fila (42883, ADR-009)
+psql:tests/security/12_special_real_matrix.sql:349: NOTICE:  N-P3R OK: NOT NULL impone 23502 (capa constraint, no permiso)
+psql:tests/security/12_special_real_matrix.sql:367: NOTICE:  N-P4R OK: fila inexistente reporta P0002
+psql:tests/security/12_special_real_matrix.sql:434: NOTICE:  S-AUDR OK: lab.bitacora_consultar() conforme
+psql:tests/security/12_special_real_matrix.sql:434: NOTICE:  S-AUDR OK: lab.catalogo_especial_actualizar(integer,text,numeric,boolean,jsonb,date) conforme
+psql:tests/security/12_special_real_matrix.sql:434: NOTICE:  S-AUDR OK: lab.catalogo_especial_eliminar(integer) conforme
+psql:tests/security/12_special_real_matrix.sql:434: NOTICE:  S-AUDR OK: lab.catalogo_especial_insertar(text,integer,numeric,boolean,jsonb,date) conforme
+psql:tests/security/12_special_real_matrix.sql:434: NOTICE:  S-AUDR OK: lab.catalogo_especial_consultar(integer,text,numeric,boolean,jsonb,date) conforme
+psql:tests/security/12_special_real_matrix.sql:434: NOTICE:  S-AUDR OK: lab.bitacora_insertar(integer,text,timestamp with time zone) conforme
+psql:tests/security/12_special_real_matrix.sql:434: NOTICE:  S-AUDR OK: bitacora_consultar EXECUTE vendedor=t (v+¡a oid)
+psql:tests/security/12_special_real_matrix.sql:434: NOTICE:  S-AUDR RESULTADO: 7/7 conformes
+
+==> tests/security/13_conflict_real_matrix.sql
+psql:tests/security/13_conflict_real_matrix.sql:30: NOTICE:  CONF-00 OK: 4 rutinas lab.producto_* presentes
+psql:tests/security/13_conflict_real_matrix.sql:52: NOTICE:  CONF-01 OK: 4/4 procedure_conflict sin flag (nada tocado)
+psql:tests/security/13_conflict_real_matrix.sql:84: NOTICE:  CONF-03 OK: 4/4 success con do_replace=true
+psql:tests/security/13_conflict_real_matrix.sql:110: NOTICE:  CONF-04 OK: GRANTs preservados tras do_replace (matriz intacta)
+psql:tests/security/13_conflict_real_matrix.sql:129: NOTICE:  CONF-05 OK: CALL funciona tras do_replace (nombre=ConfOK precio=5.00)
+
+==> tests/security/02_invoker_vs_definer.sql
+psql:tests/security/02_invoker_vs_definer.sql:9: NOTICE:  el procedimiento lab.exp_invoker_insert(pg_catalog.int4,text,pg_catalog.numeric) no existe, omitiendo
+psql:tests/security/02_invoker_vs_definer.sql:10: NOTICE:  el procedimiento lab.exp_definer_insert(pg_catalog.int4,text,pg_catalog.numeric) no existe, omitiendo
+psql:tests/security/02_invoker_vs_definer.sql:37: NOTICE:  EXP-01 OK: INVOKER bloquea sin permiso de tabla (42501)
+psql:tests/security/02_invoker_vs_definer.sql:47: NOTICE:  EXP-02: DEFINER permiti+¦ sin permiso de tabla (elevaci+¦n v+¡a owner)
+
+==> tests/security/03_negative.sql
+psql:tests/security/03_negative.sql:17: NOTICE:  NEG-01 OK: 42501 sin EXECUTE
+psql:tests/security/03_negative.sql:33: NOTICE:  NEG-02 OK: 42501 sin USAGE
+psql:tests/security/03_negative.sql:47: NOTICE:  NEG-03 OK: 42883 rutina inexistente
+psql:tests/security/03_negative.sql:59: NOTICE:  NEG-04 OK: 42P01 tabla inexistente
+psql:tests/security/03_negative.sql:72: NOTICE:  NEG-05 OK: bitacora sin PK confirmada en cat+ílogos
+psql:tests/security/03_negative.sql:79: NOTICE:  NEG-06 OK: policy documentada en ADR-010; evidencia real en 13_conflict_real_matrix.sql
+psql:tests/security/03_negative.sql:92: NOTICE:  NEG-07: detalle_factura tiene 1 restricci+¦n(es) PK (esperado 1)
+psql:tests/security/03_negative.sql:92: NOTICE:  NEG-07: columnas en PK compuesta = 2 (esperado 2)
+psql:tests/security/03_negative.sql:102: NOTICE:  NEG-08 OK: DELETE directo bloqueado 42501
+psql:tests/security/03_negative.sql:113: NOTICE:  NEG-09 OK: admin redondo INSERT+DELETE funciona
+psql:tests/security/03_negative.sql:124: NOTICE:  NEG-10 OK: 42501 no autorizado
+psql:tests/security/03_negative.sql:136: NOTICE:  NEG-11 OK: quoting de "Nombre +ìtem"/"precio$" funciona
+
+==> tests/security/05_audit_ownership.sql
+psql:tests/security/05_audit_ownership.sql:56: NOTICE:  AUD-01 OK: lab.producto_insertar(integer, text, numeric) owner=crud_admin
+psql:tests/security/05_audit_ownership.sql:56: NOTICE:  AUD-01 OK: lab.producto_consultar(integer, text, numeric) owner=crud_admin
+psql:tests/security/05_audit_ownership.sql:56: NOTICE:  AUD-01 OK: lab.producto_actualizar(integer, text, numeric) owner=crud_admin
+psql:tests/security/05_audit_ownership.sql:56: NOTICE:  AUD-01 OK: lab.producto_eliminar(integer) owner=crud_admin
+psql:tests/security/05_audit_ownership.sql:56: NOTICE:  AUD-01 OK: lab.detalle_factura_insertar(integer, integer, integer) owner=crud_admin
+psql:tests/security/05_audit_ownership.sql:56: NOTICE:  AUD-01 OK: lab.detalle_factura_consultar(integer, integer, integer) owner=crud_admin
+psql:tests/security/05_audit_ownership.sql:56: NOTICE:  AUD-01 OK: lab.detalle_factura_actualizar(integer, integer, integer) owner=crud_admin
+psql:tests/security/05_audit_ownership.sql:56: NOTICE:  AUD-01 OK: lab.detalle_factura_eliminar(integer, integer) owner=crud_admin
+psql:tests/security/05_audit_ownership.sql:56: NOTICE:  AUD-01 RESULTADO: 8/8 owners correctos
+psql:tests/security/05_audit_ownership.sql:98: NOTICE:  AUD-02 OK: lab.producto_insertar(integer, text, numeric) SECURITY INVOKER
+psql:tests/security/05_audit_ownership.sql:98: NOTICE:  AUD-02 OK: lab.producto_consultar(integer, text, numeric) SECURITY INVOKER
+psql:tests/security/05_audit_ownership.sql:98: NOTICE:  AUD-02 OK: lab.producto_actualizar(integer, text, numeric) SECURITY INVOKER
+psql:tests/security/05_audit_ownership.sql:98: NOTICE:  AUD-02 OK: lab.producto_eliminar(integer) SECURITY INVOKER
+psql:tests/security/05_audit_ownership.sql:98: NOTICE:  AUD-02 OK: lab.detalle_factura_insertar(integer, integer, integer) SECURITY INVOKER
+psql:tests/security/05_audit_ownership.sql:98: NOTICE:  AUD-02 OK: lab.detalle_factura_consultar(integer, integer, integer) SECURITY INVOKER
+psql:tests/security/05_audit_ownership.sql:98: NOTICE:  AUD-02 OK: lab.detalle_factura_actualizar(integer, integer, integer) SECURITY INVOKER
+psql:tests/security/05_audit_ownership.sql:98: NOTICE:  AUD-02 OK: lab.detalle_factura_eliminar(integer, integer) SECURITY INVOKER
+psql:tests/security/05_audit_ownership.sql:98: NOTICE:  AUD-02 RESULTADO: 8/8 SECURITY INVOKER
+psql:tests/security/05_audit_ownership.sql:160: NOTICE:  AUD-03 OK: lab.producto_insertar(integer, text, numeric) search_path=lab, pg_temp
+psql:tests/security/05_audit_ownership.sql:160: NOTICE:  AUD-03 OK: lab.producto_consultar(integer, text, numeric) search_path=lab, pg_temp
+psql:tests/security/05_audit_ownership.sql:160: NOTICE:  AUD-03 OK: lab.producto_actualizar(integer, text, numeric) search_path=lab, pg_temp
+psql:tests/security/05_audit_ownership.sql:160: NOTICE:  AUD-03 OK: lab.producto_eliminar(integer) search_path=lab, pg_temp
+psql:tests/security/05_audit_ownership.sql:160: NOTICE:  AUD-03 OK: lab.detalle_factura_insertar(integer, integer, integer) search_path=lab, pg_temp
+psql:tests/security/05_audit_ownership.sql:160: NOTICE:  AUD-03 OK: lab.detalle_factura_consultar(integer, integer, integer) search_path=lab, pg_temp
+psql:tests/security/05_audit_ownership.sql:160: NOTICE:  AUD-03 OK: lab.detalle_factura_actualizar(integer, integer, integer) search_path=lab, pg_temp
+psql:tests/security/05_audit_ownership.sql:160: NOTICE:  AUD-03 OK: lab.detalle_factura_eliminar(integer, integer) search_path=lab, pg_temp
+psql:tests/security/05_audit_ownership.sql:160: NOTICE:  AUD-03 RESULTADO: 8/8 search_path=lab, pg_temp
+psql:tests/security/05_audit_ownership.sql:206: NOTICE:  AUD-04 OK: lab.producto_insertar(integer, text, numeric) esquema=lab
+psql:tests/security/05_audit_ownership.sql:206: NOTICE:  AUD-04 OK: lab.producto_consultar(integer, text, numeric) esquema=lab
+psql:tests/security/05_audit_ownership.sql:206: NOTICE:  AUD-04 OK: lab.producto_actualizar(integer, text, numeric) esquema=lab
+psql:tests/security/05_audit_ownership.sql:206: NOTICE:  AUD-04 OK: lab.producto_eliminar(integer) esquema=lab
+psql:tests/security/05_audit_ownership.sql:206: NOTICE:  AUD-04 OK: lab.detalle_factura_insertar(integer, integer, integer) esquema=lab
+psql:tests/security/05_audit_ownership.sql:206: NOTICE:  AUD-04 OK: lab.detalle_factura_consultar(integer, integer, integer) esquema=lab
+psql:tests/security/05_audit_ownership.sql:206: NOTICE:  AUD-04 OK: lab.detalle_factura_actualizar(integer, integer, integer) esquema=lab
+psql:tests/security/05_audit_ownership.sql:206: NOTICE:  AUD-04 OK: lab.detalle_factura_eliminar(integer, integer) esquema=lab
+psql:tests/security/05_audit_ownership.sql:206: NOTICE:  AUD-04 RESULTADO: 8/8 en esquema lab
+psql:tests/security/05_audit_ownership.sql:276: NOTICE:  AUD-05 WARNING: lab.producto_insertar(integer, text, numeric) usa EXECUTE din+ímico; auditar quoting %I/USING (ADR-013)
+psql:tests/security/05_audit_ownership.sql:276: NOTICE:  AUD-05 OK: lab.producto_insertar(integer, text, numeric) referencias calificadas, sin SQL din+ímico
+psql:tests/security/05_audit_ownership.sql:276: NOTICE:  AUD-05 OK: lab.producto_consultar(integer, text, numeric) referencias calificadas, sin SQL din+ímico
+psql:tests/security/05_audit_ownership.sql:276: NOTICE:  AUD-05 OK: lab.producto_actualizar(integer, text, numeric) referencias calificadas, sin SQL din+ímico
+psql:tests/security/05_audit_ownership.sql:276: NOTICE:  AUD-05 OK: lab.producto_eliminar(integer) referencias calificadas, sin SQL din+ímico
+psql:tests/security/05_audit_ownership.sql:276: NOTICE:  AUD-05 WARNING: lab.detalle_factura_insertar(integer, integer, integer) usa EXECUTE din+ímico; auditar quoting %I/USING (ADR-013)
+psql:tests/security/05_audit_ownership.sql:276: NOTICE:  AUD-05 OK: lab.detalle_factura_insertar(integer, integer, integer) referencias calificadas, sin SQL din+ímico
+psql:tests/security/05_audit_ownership.sql:276: NOTICE:  AUD-05 OK: lab.detalle_factura_consultar(integer, integer, integer) referencias calificadas, sin SQL din+ímico
+psql:tests/security/05_audit_ownership.sql:276: NOTICE:  AUD-05 OK: lab.detalle_factura_actualizar(integer, integer, integer) referencias calificadas, sin SQL din+ímico
+psql:tests/security/05_audit_ownership.sql:276: NOTICE:  AUD-05 OK: lab.detalle_factura_eliminar(integer, integer) referencias calificadas, sin SQL din+ímico
+psql:tests/security/05_audit_ownership.sql:276: NOTICE:  AUD-05 RESULTADO: 8/8 referencias calificadas
+
+==> tests/security/06_revoke_public_audit.sql
+psql:tests/security/06_revoke_public_audit.sql:61: NOTICE:  PUB-01 OK: lab.producto_insertar(integer,text,numeric) PUBLIC sin EXECUTE
+psql:tests/security/06_revoke_public_audit.sql:61: NOTICE:  PUB-01 OK: lab.producto_consultar(integer,text,numeric) PUBLIC sin EXECUTE
+psql:tests/security/06_revoke_public_audit.sql:61: NOTICE:  PUB-01 OK: lab.producto_actualizar(integer,text,numeric) PUBLIC sin EXECUTE
+psql:tests/security/06_revoke_public_audit.sql:61: NOTICE:  PUB-01 OK: lab.producto_eliminar(integer) PUBLIC sin EXECUTE
+psql:tests/security/06_revoke_public_audit.sql:61: NOTICE:  PUB-01 OK: lab.detalle_factura_insertar(integer,integer,integer) PUBLIC sin EXECUTE
+psql:tests/security/06_revoke_public_audit.sql:61: NOTICE:  PUB-01 OK: lab.detalle_factura_consultar(integer,integer,integer) PUBLIC sin EXECUTE
+psql:tests/security/06_revoke_public_audit.sql:61: NOTICE:  PUB-01 OK: lab.detalle_factura_actualizar(integer,integer,integer) PUBLIC sin EXECUTE
+psql:tests/security/06_revoke_public_audit.sql:61: NOTICE:  PUB-01 OK: lab.detalle_factura_eliminar(integer,integer) PUBLIC sin EXECUTE
+psql:tests/security/06_revoke_public_audit.sql:61: NOTICE:  PUB-01 RESULTADO: 8/8 sin EXECUTE para PUBLIC
+psql:tests/security/06_revoke_public_audit.sql:115: NOTICE:  PUB-02 RESULTADO: 24/24 celdas EXECUTE exactas
+psql:tests/security/06_revoke_public_audit.sql:135: NOTICE:  REV-01 OK paso 1: EXECUTE inicial presente (ACL)
+psql:tests/security/06_revoke_public_audit.sql:143: NOTICE:  REV-01 OK paso 1b: CALL inicial funciona (comportamiento)
+psql:tests/security/06_revoke_public_audit.sql:169: NOTICE:  REV-01 OK paso 2: EXECUTE desaparece tras REVOKE (ACL)
+psql:tests/security/06_revoke_public_audit.sql:169: NOTICE:  REV-01 OK paso 2b: PUBLIC sigue sin EXECUTE
+psql:tests/security/06_revoke_public_audit.sql:179: NOTICE:  REV-01 OK paso 2c: CALL rechazado con 42501 real tras REVOKE
+psql:tests/security/06_revoke_public_audit.sql:209: NOTICE:  REV-01 OK paso 3: privilegio vuelve solo a supervisor (vecinos intactos, PUBLIC bloqueado)
+psql:tests/security/06_revoke_public_audit.sql:226: NOTICE:  REV-01 OK paso 3b: CALL vuelve a funcionar tras GRANT
+psql:tests/security/06_revoke_public_audit.sql:237: NOTICE:  el procedimiento lab.pub_leak_decoy(pg_catalog.int4) no existe, omitiendo
+psql:tests/security/06_revoke_public_audit.sql:263: NOTICE:  PUB-03 OK-detecci+¦n: fuga PUBLIC en se+¦uelo detectada como FAIL esperado
+psql:tests/security/06_revoke_public_audit.sql:279: NOTICE:  PUB-03 OK-correcci+¦n: tras REVOKE, PUBLIC sin EXECUTE
+psql:tests/security/06_revoke_public_audit.sql:291: NOTICE:  PUB-03 OK-limpieza: se+¦uelo eliminado, sin basura
+
+==> tests/security/08_dynamic_sql_audit.sql
+psql:tests/security/08_dynamic_sql_audit.sql:17: NOTICE:  el procedimiento lab.dyn_unsafe_count(text,pg_catalog.int4) no existe, omitiendo
+psql:tests/security/08_dynamic_sql_audit.sql:18: NOTICE:  el procedimiento lab.dyn_safe_ident_count(text,pg_catalog.int4) no existe, omitiendo
+psql:tests/security/08_dynamic_sql_audit.sql:19: NOTICE:  el procedimiento lab.dyn_safe_count(text,pg_catalog.int4) no existe, omitiendo
+psql:tests/security/08_dynamic_sql_audit.sql:20: NOTICE:  el procedimiento lab.dyn_safe_insert(pg_catalog.int4,text) no existe, omitiendo
+psql:tests/security/08_dynamic_sql_audit.sql:21: NOTICE:  la tabla -½dyn_probe-+ no existe, omitiendo
+psql:tests/security/08_dynamic_sql_audit.sql:104: NOTICE:  DYN-00 RESULTADO: 4/4 procedures de prueba conformes
+psql:tests/security/08_dynamic_sql_audit.sql:149: NOTICE:  DYN-01 RESULTADO: 8/8 valores hostiles guardados como datos exactos
+psql:tests/security/08_dynamic_sql_audit.sql:194: NOTICE:  DYN-02 OK: ident v+ílido dyn_probe cuenta 8
+psql:tests/security/08_dynamic_sql_audit.sql:194: NOTICE:  DYN-02 OK: ident con ; neutralizado (42P01 no existe la relaci+¦n -½lab.dyn_probe; DROP TABLE lab.dyn_probe ---+)
+psql:tests/security/08_dynamic_sql_audit.sql:194: NOTICE:  DYN-02 OK: ident con comillas neutralizado (42P01 no existe la relaci+¦n -½lab.dyn_probe" WHERE "1"="1-+)
+psql:tests/security/08_dynamic_sql_audit.sql:194: NOTICE:  DYN-02 OK: ident fuera de lab neutralizado (42P01 no existe la relaci+¦n -½lab.pg_shadow-+)
+psql:tests/security/08_dynamic_sql_audit.sql:194: NOTICE:  DYN-02 RESULTADO: %I neutraliza identificadores (1 v+ílido + 3 hostiles)
+psql:tests/security/08_dynamic_sql_audit.sql:215: NOTICE:  DYN-03 OK: seguro=0 (dato) vs inseguro=8 (tautolog+¡a): la concatenaci+¦n inyecta de verdad
+psql:tests/security/08_dynamic_sql_audit.sql:268: NOTICE:  DYN-04 OK-detecci+¦n: se+¦uelo dyn_unsafe_count marcado como FAIL esperado
+psql:tests/security/08_dynamic_sql_audit.sql:268: NOTICE:  DYN-04 RESULTADO: scan marca solo el se+¦uelo; 12 fixtures + 3 seguros limpios
+psql:tests/security/08_dynamic_sql_audit.sql:285: NOTICE:  DYN-05 OK: USING cuenta el valor literal con %I/%L/$1 sin reinterpretar
+psql:tests/security/08_dynamic_sql_audit.sql:309: NOTICE:  DYN-LIMPIEZA OK: cero residuos (ni se+¦uelo ni sonda ni seguros)
+
+==> tests/security/10_generated_routine_discovery.sql
+
+==> tests/integration/01_checklist.sql
+psql:tests/integration/01_checklist.sql:13: NOTICE:  INT-01 PENDIENTE: extensi+¦n no instalada en esta base (instalar seg+¦n extension/README.md)
+psql:tests/integration/01_checklist.sql:22: NOTICE:  INT-02 OK: fixtures lab.producto_* presentes
+psql:tests/integration/01_checklist.sql:58: NOTICE:  INT-07 OK: fixtures lab.detalle_factura_* presentes
+psql:tests/integration/01_checklist.sql:125: NOTICE:  INT-12 OK: fixtures lab.ticket_* presentes
+psql:tests/integration/01_checklist.sql:138: ERROR:  no existe la funci+¦n -½lab.ticket_insertar(integer,text,timestamptz)-+
+
+==> tests/integration/02_demo_script.sql
+psql:tests/integration/02_demo_script.sql:9: NOTICE:  DEMO-01: verificar extensi+¦n crud_generator (contrato cerrado CONTRACTS.md -º3)
+psql:tests/integration/02_demo_script.sql:14: NOTICE:  DEMO-02: generate_crud(lab, producto) v+¡a extensi+¦n (ver modo reales en tests/README.md -º11)
+psql:tests/integration/02_demo_script.sql:17: NOTICE:  DEMO-03: matriz vendedor/supervisor/administrador aplicada (fixtures)
+psql:tests/integration/02_demo_script.sql:30: NOTICE:  DEMO-04 OK autorizado: vendedor INSERT+READ nombre=DemoOK precio=15.00
+psql:tests/integration/02_demo_script.sql:41: NOTICE:  DEMO-05 OK no autorizado: 42501 delante del profesor
+psql:tests/integration/02_demo_script.sql:51: NOTICE:  DEMO-06 OK: administrador DELETE cierra el ciclo
+psql:tests/integration/02_demo_script.sql:61: NOTICE:  DEMO-07 RESERVADO: tabla_virgen intacta, no tocar hasta demo final
+
+==> tests/integration/01_checklist.sql (re-corrida tras fix bimodal INT-12/13/15/16)
+psql:tests/integration/01_checklist.sql:13: NOTICE:  INT-01 PENDIENTE: extensi+¦n no instalada en esta base (instalar seg+¦n extension/README.md)
+psql:tests/integration/01_checklist.sql:22: NOTICE:  INT-02 OK: fixtures lab.producto_* presentes
+int03
+INT-03 vendedor EXECUTE insertar=true / eliminar=false
+int04
+INT-04 USAGE lab: vendedor=true supervisor=true admin=true
+int05
+INT-05 owner producto_insertar=crud_admin
+int06
+INT-06 tabla_virgen filas=0
+int06b
+INT-06 virgen EXEC/SELECT vendedor=false
+psql:tests/integration/01_checklist.sql:58: NOTICE:  INT-07 OK: fixtures lab.detalle_factura_* presentes
+int08
+INT-08 vendedor EXECUTE insertar=true / eliminar=false
+int09
+INT-09 owner detalle_factura_insertar=crud_admin
+int10
+INT-10 fixtures conformes=8/8
+int11
+INT-11 fugas PUBLIC=0/8 (esperado 0)
+psql:tests/integration/01_checklist.sql:126: NOTICE:  INT-12 OK: lab.ticket_* presentes (fixtures o reales)
+int13
+INT-13 vendedor EXECUTE insertar=true / eliminar=false / owner=crud_admin
+psql:tests/integration/01_checklist.sql:167: NOTICE:  INT-15 OK: T6 presentes (4 especiales + bitacora insertar+lectura)
+int16
+INT-16 vendedor EXECUTE insertar=true / eliminar=false / bitacora_actualizar_existe=0
+int14
+INT-14 residuos dyn_*=0 (esperado 0)
+
+RESUMEN FASE 2: 155 lineas OK, 0 FAIL/FALLO inesperados (ver detalle arriba)

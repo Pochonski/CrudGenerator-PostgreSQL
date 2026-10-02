@@ -139,5 +139,16 @@ de procedures existentes contra reales: sin flag → 4×`procedure_conflict`
 sin tocar nada; con `do_replace=true` → 4×success con GRANTs preservados
 (CONF-00..05 OK en PG18 02-10, idempotente).
 
+`tests/integration/01_checklist.sql` (INT-01..16) es bimodal: corre igual con
+fixtures o con reales (INT-12/13/15/16 resuelven por nombre/oid, no por firma
+textual). INT-01 reporta la extensión vía `pg_extension`.
+
 > 11/12/13 son modo reales y NO forman parte de `run_harness.sh` ni del CI
 > (que valida el modo fixtures). Requieren extensión instalada + grants reales.
+
+## Evidencia del ensayo general (PG18 local, 2026-10-02)
+
+`tests/evidence/fase1_fixtures.log` (19 archivos, 195 OK, 0 fallos) y
+`tests/evidence/fase2_reales.log` (155 OK, 0 fallos) registran la pasada
+completa limpia desde base cero: fase 1 modo fixtures + fase 2 modo reales
+(generate ×5, grants reales, matrices 01/04c/11/12/13, auditorías, demo).

@@ -113,49 +113,69 @@ JOIN pg_proc p ON p.pronamespace = n.oid AND p.proname = e.proc_name
 WHERE (p.proacl IS NULL OR p.proacl::text LIKE '{=X/%'
     OR p.proacl::text LIKE '%,=X/%');
 
--- INT-12: fixtures T2 presentes (ticket_*, IDENTITY/DEFAULT, reemplazables por Joyce)
+-- INT-12: rutinas T2 presentes (ticket_*, IDENTITY/DEFAULT; fixtures 07 o reales).
+-- Solo verifica nombres (las firmas difieren por modo, ver 07 vs 11).
 DO $$
 BEGIN
   IF (SELECT count(*) FROM pg_proc p JOIN pg_namespace n ON n.oid=p.pronamespace
       WHERE n.nspname='lab' AND p.proname IN
         ('ticket_insertar','ticket_consultar',
          'ticket_actualizar','ticket_eliminar')) = 4 THEN
-    RAISE NOTICE 'INT-12 OK: fixtures lab.ticket_* presentes';
-  ELSE RAISE NOTICE 'INT-12 FAIL: ejecutar fixtures/07_ticket_fixtures.sql'; END IF;
+    RAISE NOTICE 'INT-12 OK: lab.ticket_* presentes (fixtures o reales)';
+  ELSE RAISE NOTICE 'INT-12 FAIL: generar ticket_* (fixtures/07 o generate_crud)'; END IF;
 END $$;
 
--- INT-13: EXECUTE matriz ticket (vendedor→insertar sí, →eliminar no) + owner crud_admin
+-- INT-13: EXECUTE matriz ticket (vendedor→insertar sí, →eliminar no) + owner crud_admin.
+-- Bimodal (fixtures o reales): resuelve por oid/nombre, no por firma textual
+-- (fixture `insertar(integer,text,timestamptz)` vs real `insertar(text,timestamptz)`).
 SELECT 'INT-13 vendedor EXECUTE insertar=' ||
   has_function_privilege('crud_vendedor',
-    'lab.ticket_insertar(integer,text,timestamptz)', 'EXECUTE')::text ||
+    (SELECT p.oid FROM pg_proc p JOIN pg_namespace n ON n.oid=p.pronamespace
+     WHERE n.nspname='lab' AND p.proname='ticket_insertar'), 'EXECUTE')::text ||
   ' / eliminar=' ||
   has_function_privilege('crud_vendedor',
-    'lab.ticket_eliminar(integer)', 'EXECUTE')::text ||
+    (SELECT p.oid FROM pg_proc p JOIN pg_namespace n ON n.oid=p.pronamespace
+     WHERE n.nspname='lab' AND p.proname='ticket_eliminar'), 'EXECUTE')::text ||
   ' / owner=' ||
   (SELECT r.rolname FROM pg_proc p JOIN pg_namespace n ON n.oid=p.pronamespace
      JOIN pg_roles r ON r.oid=p.proowner
    WHERE n.nspname='lab' AND p.proname='ticket_insertar'
    LIMIT 1) AS int13;
 
--- INT-15: fixtures T6 presentes (catalogo_especial_* + bitacora_* provisionales)
+-- INT-15: rutinas T6 presentes — bimodal: fixtures (`bitacora_contar`) o reales
+-- (`bitacora_consultar` refcursor). Catalogo_especial tiene los mismos 4 nombres
+-- en ambos modos.
 DO $$
+DECLARE
+  v_cat integer;
+  v_bitc integer;
 BEGIN
-  IF (SELECT count(*) FROM pg_proc p JOIN pg_namespace n ON n.oid=p.pronamespace
-      WHERE n.nspname='lab' AND p.proname IN
-        ('catalogo_especial_insertar','catalogo_especial_consultar',
-         'catalogo_especial_actualizar','catalogo_especial_eliminar',
-         'bitacora_insertar','bitacora_contar')) = 6 THEN
-    RAISE NOTICE 'INT-15 OK: fixtures T6 presentes (4 especiales + 2 sin PK)';
-  ELSE RAISE NOTICE 'INT-15 FAIL: ejecutar fixtures/08_special_nopk_fixtures.sql'; END IF;
+  SELECT count(*) INTO v_cat FROM pg_proc p JOIN pg_namespace n ON n.oid=p.pronamespace
+  WHERE n.nspname='lab' AND p.proname IN
+    ('catalogo_especial_insertar','catalogo_especial_consultar',
+     'catalogo_especial_actualizar','catalogo_especial_eliminar');
+  SELECT count(*) INTO v_bitc FROM pg_proc p JOIN pg_namespace n ON n.oid=p.pronamespace
+  WHERE n.nspname='lab' AND p.proname IN ('bitacora_insertar')
+    AND EXISTS (SELECT 1 FROM pg_proc q JOIN pg_namespace m ON m.oid=q.pronamespace
+                WHERE m.nspname='lab'
+                  AND q.proname IN ('bitacora_contar','bitacora_consultar'));
+  IF v_cat = 4 AND v_bitc = 1 THEN
+    RAISE NOTICE 'INT-15 OK: T6 presentes (4 especiales + bitacora insertar+lectura)';
+  ELSE
+    RAISE NOTICE 'INT-15 FAIL: cat=%/4 bitacora=%/1 (fixtures 08 o reales generate_crud)', v_cat, v_bitc;
+  END IF;
 END $$;
 
--- INT-16: EXECUTE matriz T6 (vendedor→insertar sí, →eliminar no) + sin actualizar sin PK
+-- INT-16: EXECUTE matriz T6 (vendedor→insertar sí, →eliminar no) + sin actualizar
+-- sin PK. Bimodal por oid (el insertar real reordena params pero conserva el nombre).
 SELECT 'INT-16 vendedor EXECUTE insertar=' ||
   has_function_privilege('crud_vendedor',
-    'lab.catalogo_especial_insertar(integer,text,numeric,boolean,jsonb,date)', 'EXECUTE')::text ||
+    (SELECT p.oid FROM pg_proc p JOIN pg_namespace n ON n.oid=p.pronamespace
+     WHERE n.nspname='lab' AND p.proname='catalogo_especial_insertar'), 'EXECUTE')::text ||
   ' / eliminar=' ||
   has_function_privilege('crud_vendedor',
-    'lab.catalogo_especial_eliminar(integer)', 'EXECUTE')::text ||
+    (SELECT p.oid FROM pg_proc p JOIN pg_namespace n ON n.oid=p.pronamespace
+     WHERE n.nspname='lab' AND p.proname='catalogo_especial_eliminar'), 'EXECUTE')::text ||
   ' / bitacora_actualizar_existe=' ||
   (SELECT count(*)::text FROM pg_proc p JOIN pg_namespace n ON n.oid=p.pronamespace
    WHERE n.nspname='lab' AND p.proname='bitacora_actualizar') AS int16;
