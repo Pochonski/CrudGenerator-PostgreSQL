@@ -60,7 +60,7 @@ Pruebas obligatorias (§9): casos 1-2-3 y 3 roles cubiertos por el laboratorio d
 - 🟢 Matriz de privilegios (idéntica a §4.10 del enunciado; probada con fixtures MAT-01..07)
 - 🟢 GRANT/REVOKE (04_grants probado + plantilla parametrizada 05_grants_template)
 - 🟢 SECURITY INVOKER/DEFINER (ADR-011 adoptada 01-10: INVOKER + owner `crud_admin` + `search_path` fijo; EXP-01/02 + discovery 18/18 contra reales)
-- 🟡 Pruebas por roles (NEG-01..11 probados con fixtures; pendiente re-ejecutar MAT/NEG completos contra procedures reales + tabla virgen; MAT-07 requiere ajuste variables INOUT)
+- 🟡 Pruebas por roles (NEG-01..11 probados con fixtures; MAT-07/DEMO-04 fix aplicado 02-10 con `v_id` variable — CI fixtures PASS; pendiente re-ejecutar MAT/NEG completos contra reales donde haya extensión + tabla virgen)
 - 🟢 READ adoptado y confirmado (ADR-015 + Joyce: PK vía INOUT + P0002; sin PK vía `refcursor OUT`)
 
 ## Integración
@@ -68,7 +68,7 @@ Pruebas obligatorias (§9): casos 1-2-3 y 3 roles cubiertos por el laboratorio d
 - 🟢 Contratos resueltos (ADR-007/009/010/011/015)
 - 🔴 Python → extensión (pendiente de Armando: `app/` aún no llama `analyze_table`/`generate_crud`)
 - 🟢 Generación → procedures (probado manualmente contra Postgres 16 real)
-- 🟢 Discovery/matriz de Joseph ejecutados sin modificar su lógica contra procedures reales (18/18 OK; MAT-07 necesita ajuste menor, ver COORDINATION_REQUESTS.md)
+- 🟢 Discovery/matriz de Joseph ejecutados sin modificar su lógica contra procedures reales (18/18 OK; MAT-07/DEMO-04 fix aplicado 02-10 con variable INOUT, CI fixtures PASS — ver COORDINATION_REQUESTS.md)
 - 🔴 Python → roles/permisos
 - 🟡 Prueba E2E (falta el tramo Python; la parte PostgreSQL del flujo ya está probada)
 - 🔴 Tabla nueva (tabla_virgen reservada, intacta)

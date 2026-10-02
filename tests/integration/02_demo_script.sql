@@ -49,4 +49,10 @@ END $$;
 RESET ROLE;
 
 -- DEMO-07: tabla desconocida del profesor (lab.tabla_virgen) — NO ejecutar hasta la demo final
+-- Protocolo final (delante del profesor, con extensión instalada):
+--   SET ROLE crud_admin;
+--   SELECT * FROM crud_generator.generate_crud('lab','tabla_virgen', ARRAY['INSERT','READ','UPDATE','DELETE']);
+--   GRANT USAGE ON SCHEMA lab TO <rol>; GRANT EXECUTE + permiso de tabla según matriz; RESET ROLE;
+--   SET ROLE <rol>; CALL lab.tabla_virgen_insertar(...); CALL lab.tabla_virgen_consultar(...); RESET ROLE;
+-- Regla: cualquier ejecución previa invalida la prueba "tabla no vista en desarrollo".
 DO $$ BEGIN RAISE NOTICE 'DEMO-07 RESERVADO: tabla_virgen intacta, no tocar hasta demo final'; END $$;
