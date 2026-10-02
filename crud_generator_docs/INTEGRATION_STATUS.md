@@ -35,7 +35,8 @@ El estado es compartido: cualquier integrante puede reportar bloqueos o dependen
 | Demo en vivo (10 pasos §11 + tabla del docente) | Equipo | 🔴 | Tramo Python + tabla virgen |
 
 Pruebas obligatorias (§9): casos 1-2-3 y 3 roles cubiertos por el laboratorio de
-`tests/` con fixtures; pendiente validar contra procedures reales de Joyce.
+`tests/` con fixtures (CI PASS); validados contra procedures reales en PG18 local
+02-10 (ver abajo). `lab.tabla_virgen` intacta (0 filas, 0 rutinas).
 
 ## Extensión PostgreSQL
 
@@ -60,15 +61,20 @@ Pruebas obligatorias (§9): casos 1-2-3 y 3 roles cubiertos por el laboratorio d
 - 🟢 Matriz de privilegios (idéntica a §4.10 del enunciado; probada con fixtures MAT-01..07)
 - 🟢 GRANT/REVOKE (04_grants probado + plantilla parametrizada 05_grants_template)
 - 🟢 SECURITY INVOKER/DEFINER (ADR-011 adoptada 01-10: INVOKER + owner `crud_admin` + `search_path` fijo; EXP-01/02 + discovery 18/18 contra reales)
-- 🟡 Pruebas por roles (NEG-01..11 probados con fixtures; MAT-07/DEMO-04 fix aplicado 02-10 con `v_id` variable — CI fixtures PASS; pendiente re-ejecutar MAT/NEG completos contra reales donde haya extensión + tabla virgen)
+- 🟢 Pruebas por roles (NEG-01..11 OK con fixtures y reales; MAT-01..07 7/7 y MAT-C1..C9 9/9
+  OK contra reales PG18 02-10 tras fix variables INOUT — CI fixtures PASS; pendiente adaptar
+  matrices T2/T6 a convención real + tabla virgen final)
 - 🟢 READ adoptado y confirmado (ADR-015 + Joyce: PK vía INOUT + P0002; sin PK vía `refcursor OUT`)
 
 ## Integración
 
 - 🟢 Contratos resueltos (ADR-007/009/010/011/015)
 - 🔴 Python → extensión (pendiente de Armando: `app/` aún no llama `analyze_table`/`generate_crud`)
-- 🟢 Generación → procedures (probado manualmente contra Postgres 16 real)
-- 🟢 Discovery/matriz de Joseph ejecutados sin modificar su lógica contra procedures reales (18/18 OK; MAT-07/DEMO-04 fix aplicado 02-10 con variable INOUT, CI fixtures PASS — ver COORDINATION_REQUESTS.md)
+- 🟢 Generación → procedures (18 rutinas generadas y verificadas contra PG18 local 02-10;
+  firmas exactas según handoff §2.4, incl. `not_applicable` sin PK y reorden p_2,p_1 en especial)
+- 🟢 Discovery/matriz/auditorías contra reales PG18 02-10: discovery 18/0/18/0, T3 40/40,
+  T4 PUB-01 8/8 + PUB-02 24/24 + REV-01 completo, T5 OK, EXP-01/02 OK, demo E2E OK
+  (MAT-07/DEMO-04/MAT-C/T4-3b fix variables INOUT, CI fixtures PASS)
 - 🔴 Python → roles/permisos
 - 🟡 Prueba E2E (falta el tramo Python; la parte PostgreSQL del flujo ya está probada)
 - 🔴 Tabla nueva (tabla_virgen reservada, intacta)
