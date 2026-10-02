@@ -133,3 +133,8 @@ Construir una extensión instalable de PostgreSQL capaz de analizar tablas exist
   para Joseph: fix del discovery y ajuste de MAT-07).
 - Pendiente de Armando: integrar `app/` para llamar `crud_generator.analyze_table`
   y `crud_generator.generate_crud` en vez de detenerse antes de generar.
+- **Guía completa de integración (paso a paso, para Armando y Joseph):**
+  `ARMANDO_JOSEPH_INTEGRATION_HANDOFF.md` — cómo llamar la API desde psycopg,
+  distinción FUNCTION/PROCEDURE, manejo de READ con/sin PK, GRANT de dos
+  llaves, cómo re-generar el laboratorio con procedures reales, y tabla de
+  firmas reales confirmadas.

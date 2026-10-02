@@ -152,6 +152,15 @@ Por qué afecta nuestra área:
 
 ---
 
+## Guía completa de integración
+
+Ver [`ARMANDO_JOSEPH_INTEGRATION_HANDOFF.md`](ARMANDO_JOSEPH_INTEGRATION_HANDOFF.md):
+cómo llamar `analyze_table`/`generate_crud` desde Python (psycopg), cómo
+ejecutar los procedures generados (INSERT/READ con y sin PK/UPDATE/DELETE),
+el modelo de GRANT de dos llaves, cómo re-generar el laboratorio de pruebas
+con procedures reales en vez de fixtures, y la tabla de firmas reales
+confirmadas para las 5 tablas del laboratorio.
+
 ## Nuevo — hallazgos de Joyce al integrar la implementación real (2026-10-02)
 
 Implementé la extensión (`extension/`) y la probé contra el laboratorio
