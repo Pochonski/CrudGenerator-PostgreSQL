@@ -114,6 +114,7 @@ Pruebas obligatorias (§9): casos 1-2-3 y 3 roles cubiertos por el laboratorio d
 2. ~~Implementar la extensión~~ Hecho y probada 2026-10-02 (ver EXTENSION_MEMORY.md).
 3. Armando: integrar `app/` para llamar `crud_generator.analyze_table`/`generate_crud` (ya no mock).
 4. Armando: resolver CR-ARMANDO-001..003 (vía de privilegios, formato de resultado, validación real con SET ROLE).
-5. Joseph: aplicar los dos ajustes reportados en COORDINATION_REQUESTS.md (fix de discovery ya aplicado por Joyce; MAT-07 pendiente de su ajuste) y re-ejecutar MAT/NEG completos contra procedures reales.
-6. Probar tabla_virgen (tabla desconocida) end-to-end desde Python.
-7. Preparar vídeo de evidencia y demo en vivo (10 pasos §10/§11) antes del 2026-10-04.
+5. ~~Joseph: MAT/NEG contra reales~~ Hecho 02-10 PG18 (MAT 7/7, MAT-C 9/9, T2R 11/11,
+   T6R 19/19, T3 40/40, T4, T5, discovery 18/0/18/0, NEG-06R en `13_conflict_real_matrix.sql`).
+6. ~~Probar tabla_virgen~~ Hecho one-shot 02-10 PG18 (VIR-00..06 OK, restaurada a limpio).
+7. Grabar vídeo de evidencia y demo en vivo (guion en `VIDEO_DEMO_PLAN.md`) antes del 2026-10-04.
