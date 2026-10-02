@@ -174,39 +174,36 @@ Resultado real / Estado. Catálogo de SQLSTATE: `42501` (permiso), `42883`
 - [x] SECURITY INVOKER/DEFINER analizado + experimento ejecutado (EXP-01/02);
   decisión global pendiente de voto (ADR-011) y CR-JOYCE-005
 - [x] Riesgos SQL dinámico revisados (reglas + fixtures de quoting)
-- [x] PK simple probado (con fixtures MAT-01..07 sobre lab.producto)
-- [x] PK compuesta: procedures fixture (`lab.detalle_factura_*` en
-  `tests/fixtures/06_composite_pk_fixtures.sql`) + matriz MAT-C1..C9 ejecutados y
-  verificados; estructura además verificada en NEG-07. Fixture reemplazable por el
-  generador de Joyce (procedures reales pendientes CR-JOYCE-002).
+- [x] PK simple probado (MAT-01..07 7/7 con fixtures y con reales PG18 02-10;
+  MAT-07/DEMO-04/T4-3b con variable INOUT — vale en ambos modos, CI PASS)
+- [x] PK compuesta: matriz MAT-C1..C9 9/9 con fixtures y con reales PG18 02-10
+  (fix variables INOUT en C2/C5/C7/C8/C9); estructura verificada en NEG-07.
+  Reales generados por Joyce (`lab.detalle_factura_*`, firmas idénticas).
 - [x] Auditoría owner/search_path/SECURITY (T3: `tests/security/05_audit_ownership.sql`,
-  AUD-01..05) sobre los 8 fixtures — 40/40 OK en PG16, re-ejecutable sin cambios
-  contra los procedures reales de Joyce. El generador real aún no existe y NO está
-  auditado; esta auditoría es preparatoria (verifica fixtures + detecta DEFINER,
-  owner indebido, search_path ausente/distinto y referencias sin calificar).
+  AUD-01..05) — 40/40 OK con fixtures y 40/40 OK contra reales PG18 02-10
+  (owner crud_admin, INVOKER, search_path, esquema, refs calificadas).
 - [x] Higiene PUBLIC + regresión REVOKE (T4: `tests/security/06_revoke_public_audit.sql`,
-  PUB-01/02/03 + REV-01) — 42/42 OK en PG16, dos pasadas idénticas: PUBLIC sin
-  EXECUTE en 8/8 (ACL `proacl`, no solo CALL), matriz EXECUTE 24/24 exacta por rol,
-  ciclo REVOKE→GRANT restaurado con vecinos intactos, señuelo con fuga detectado
-  (FAIL esperado) → corregido → eliminado. Sin basura residual; tabla_virgen intacta.
-- [x] Autogenerado IDENTITY/DEFAULT (T2: `tests/fixtures/07_ticket_fixtures.sql` +
-  `tests/security/07_ticket_matrix.sql`) — MAT-T1..T9, N-T1..T3, TIX-00 y TIX-AUD
-  ejecutados y verificados; cubre el Caso 3 §9 con fixtures. Provisional: la
-  convención fixture (id entrante ignorado, NULL→DEFAULT, actualizar solo codigo)
-  deberá repetirse contra las funciones generadas por Joyce (CR-JOYCE-002/003).
-  T3/T4 originales siguen auditando los 8 fixtures previos, intactos.
+  PUB-01/02/03 + REV-01) — OK con fixtures y contra reales PG18 02-10
+  (PUB-01 8/8, matriz EXECUTE 24/24, ciclo REVOKE→GRANT restaurado, señuelo).
+  Sin basura residual; tabla_virgen intacta.
+- [x] Autogenerado IDENTITY/DEFAULT: T2 con fixtures (07, Caso 3 §9) + T2R contra
+  reales (`tests/security/11_ticket_real_matrix.sql`) — TIXR-00, MAT-T1R..T9R,
+  TIXR-AUD 4/4 OK en PG18 02-10, doble pasada idéntica, cero residuos.
+  Convención real: insertar sin id (GENERATED ALWAYS omitido, NULL→DEFAULT).
 - [x] SQL dinámico seguro (T5: `tests/security/08_dynamic_sql_audit.sql`, DYN-00..05)
   — ADR-013 verificado con pruebas, no solo documentado: %I + USING neutralizan
   8 valores hostiles (round-trip exacto) y 3 identificadores hostiles (42P01 sin
   ejecución); señuelo con || inyecta de verdad (tautología 8/8) y el scan lo marca;
   12 fixtures + 3 seguros limpios; %L innecesario (USING parametriza). Autocontenido:
   cero residuos, doble pasada idéntica en PG16.
-- [x] Sin PK (T6 provisional): `lab.bitacora_*` solo insertar+contar; actualizar/
-  eliminar por fila AUSENTES a propósito (42883) hasta decisión CR-JOYCE-003.
-  Fixture de comportamiento, NO decisión final del generador.
-- [x] Tipos especiales (T6): `lab.catalogo_especial_*` con quoting/unicode/jsonb/
+- [x] Sin PK + tipos especiales contra reales (T6R:
+  `tests/security/12_special_real_matrix.sql`) — S-00R, MAT-S1R..S8R, MAT-B1R..B3R
+  (READ por `refcursor` con FETCH en-transacción), B-POL (`not_applicable`
+  ADR-009 verificado vía generate_crud), N-P1R..P4R, S-AUDR 7/7 OK en PG18 02-10.
+  09/08 quedan para modo fixtures. Política CR-JOYCE-003 RESUELTA e implementada.
+- [x] Tipos especiales con fixtures (T6): `lab.catalogo_especial_*` con quoting/unicode/jsonb/
   boolean/date/numeric + identity BY DEFAULT; round-trip exacto y DEFAULTs del
-  esquema verificados. Fixtures reemplazables por Joyce.
+  esquema verificados (09) y contra reales con orden de params real (12).
 - [ ] Procedimiento existente probado (pendiente Joyce CR-JOYCE-004)
 - [x] Usuario autorizado probado (fixtures: MAT-01/04/06/07, NEG-09)
 - [x] Usuario no autorizado probado (fixtures: MAT-02/03/05, NEG-01/02/10)

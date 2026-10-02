@@ -110,3 +110,26 @@ Este discovery es deliberadamente independiente de T1-T6: no sustituye todavía
 las matrices ni decide qué procedure corresponde a INSERT/READ/UPDATE/DELETE.
 Cuando Joyce publique el contrato real, esa asociación se hará sobre este
 resultado y no mediante firmas hardcodeadas.
+
+## 11. Modo reales (procedures generados por la extensión)
+
+`security/11_ticket_real_matrix.sql` (T2R, Caso 3 §9) y
+`security/12_special_real_matrix.sql` (T6R, tipos especiales + sin PK)
+prueban los procedures REALES de `crud_generator.generate_crud`, no los
+fixtures. 07/09 quedan intactos para el modo fixtures (CI).
+
+Orden en una base con la extensión instalada (ver `handoff §2.3`):
+
+```text
+1. fixtures/01_roles.sql + 02_schema.sql
+2. generate_crud('lab','ticket'|'catalogo_especial'|'bitacora', 4 ops) como crud_admin
+3. grants reales (plantilla 05 con firmas del handoff §2.4)
+4. security/11_ticket_real_matrix.sql  → TIXR-00, MAT-T1R..T9R, TIXR-AUD 4/4
+5. security/12_special_real_matrix.sql → S-00R, MAT-S1R..S8R, MAT-B1R..B3R
+   (refcursor), B-POL (not_applicable ADR-009), N-P1R..P4R, S-AUDR 7/7
+```
+
+Marcadores disjuntos de 07/09: `TIXR-%`, `SPCR-%`, `LOGR-%`.
+Validado 02-10 en PG18 local: 11/11 + 19/19 OK, doble pasada idéntica,
+cero residuos, `tabla_virgen` intacta. Detalle de firmas y decisiones en
+`crud_generator_docs/ARMANDO_JOSEPH_INTEGRATION_HANDOFF.md` §2.

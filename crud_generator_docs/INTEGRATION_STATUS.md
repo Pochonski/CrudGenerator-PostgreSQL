@@ -62,8 +62,10 @@ Pruebas obligatorias (§9): casos 1-2-3 y 3 roles cubiertos por el laboratorio d
 - 🟢 GRANT/REVOKE (04_grants probado + plantilla parametrizada 05_grants_template)
 - 🟢 SECURITY INVOKER/DEFINER (ADR-011 adoptada 01-10: INVOKER + owner `crud_admin` + `search_path` fijo; EXP-01/02 + discovery 18/18 contra reales)
 - 🟢 Pruebas por roles (NEG-01..11 OK con fixtures y reales; MAT-01..07 7/7 y MAT-C1..C9 9/9
-  OK contra reales PG18 02-10 tras fix variables INOUT — CI fixtures PASS; pendiente adaptar
-  matrices T2/T6 a convención real + tabla virgen final)
+  OK contra reales PG18 02-10 tras fix variables INOUT — CI fixtures PASS)
+- 🟢 Caso 3 §9 + T6 contra reales (archivos nuevos 11/12 modo reales, validados PG18 02-10:
+  TIXR 11/11 incl. AUD 4/4; SPC/LOG 19/19 incl. B-POL not_applicable + S-AUDR 7/7;
+  07/09 intactos para modo fixtures; tabla virgen final pendiente)
 - 🟢 READ adoptado y confirmado (ADR-015 + Joyce: PK vía INOUT + P0002; sin PK vía `refcursor OUT`)
 
 ## Integración
