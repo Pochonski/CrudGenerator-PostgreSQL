@@ -115,7 +115,14 @@ Construir una extensión instalable de PostgreSQL capaz de analizar tablas exist
 
 - `analyze_table`: PK simple, PK compuesta, IDENTITY ALWAYS/BY DEFAULT,
   DEFAULT, tipos especiales (`numeric(12,2)`, `jsonb`, `boolean`, `date`),
-  nombres con espacios/acentos (`"Nombre Ítem"`, `"precio$"`).
+  nombres de columna con espacios/acentos (`"Nombre Ítem"`, `"precio$"`).
+- **Esquema y tabla con nombre especial:** `"Mi Esquema"."Mi Tabla Rara"`
+  (espacio en ambos) con columnas `"Id Raro"` (PK), `"Select"` y `"order"`
+  (palabras reservadas de SQL). `analyze_table` y `generate_crud` generaron
+  correctamente los 4 procedures (`"Mi Esquema"."Mi Tabla Rara_insertar"`,
+  etc.) y se ejecutaron INSERT/UPDATE/DELETE reales sin errores de quoting.
+  Cierra la verificación de "identificación segura de esquemas/tablas" del
+  enunciado (antes solo se había probado con nombres de columna especiales).
 - `generate_crud` + ejecución real de INSERT/READ/UPDATE/DELETE en las 5
   tablas del laboratorio de Joseph, incluyendo error `P0002` en fila
   inexistente y `OVERRIDING SYSTEM VALUE` para identity BY DEFAULT.
