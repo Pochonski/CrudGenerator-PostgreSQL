@@ -50,7 +50,7 @@ Construir una aplicación Python que permita al administrador conectarse a Postg
 - Usar los contratos definidos en `CONTRACTS.md`.
 - La UI debe estar separada de la lógica de acceso a datos tanto como sea razonable.
 
-## Estado actual (02-10-2026, post-merge Joyce → main)
+## Estado actual (03-10-2026, capa servicio analyze/generate testeada)
 
 - [x] Arquitectura de módulos (base: `config` + `db/connection`)
 - [x] Biblioteca PostgreSQL confirmada (`psycopg>=3.2`, ADR-005)
@@ -59,13 +59,13 @@ Construir una aplicación Python que permita al administrador conectarse a Postg
 - [x] Esquemas (`CatalogService.list_schemas`)
 - [x] Tablas (`CatalogService.list_tables`, solo listado; sin columnas/PK — `analyze_table` es de la extensión)
 - [x] Selección de tablas (CLI: una/varias/todas + `CrudSelection`)
-- [ ] Análisis de tabla (pendiente: llamar `crud_generator.analyze_table` — API cerrada en `CONTRACTS.md` §3.1)
+- [x] Análisis de tabla (capa servicio: `ExtensionService.analyze_table` → `tuple[ColumnMetadata, ...]`; `CONTRACTS.md` §3.1; sin conectar aún a `ApplicationFlow`/CLI)
 - [x] Selección CRUD (CLI + `CrudOperation`, sin generar)
-- [ ] Generación (pendiente: llamar `crud_generator.generate_crud` — API cerrada en `CONTRACTS.md` §3.2; `ApplicationFlow` hoy termina en `show_generation_pending()`)
+- [x] Generación (capa servicio: `ExtensionService.generate_crud` → `tuple[GenerationResult, ...]`; `CONTRACTS.md` §3.2–3.3; sin conectar aún a `ApplicationFlow`/CLI)
 - [x] Roles (`CatalogService.list_roles`, solo listado; sin GRANT/REVOKE)
 - [ ] Privilegios (matriz lógica implementada; GRANT/REVOKE y validación real pendientes CR-ARMANDO-001/003)
 - [x] Manejo de errores (base de conexión: jerarquía propia + SQLSTATE preservado)
-- [ ] Integración completa (contratos cerrados 01-10, extensión mergeada 02-10, falta tramo Python)
+- [ ] Integración completa (capa servicio lista y testeada con fakes; falta conectar `ApplicationFlow`/CLI + prueba con tabla nueva)
 - [ ] Prueba con tabla nueva (`lab.tabla_virgen` intacta, reservada)
 
 ## Decisiones locales
@@ -109,6 +109,34 @@ Construir una aplicación Python que permita al administrador conectarse a Postg
   Nombre parametrizado con `%s`; `""` → `ValueError`; ownership de
   transacciones igual que `CatalogService`; solo `psycopg.Error` se convierte
   en `ERROR` (un bug ajeno a PG se propaga).
+- `ExtensionService.analyze_table(schema, table)` (03-10, capa servicio):
+  `SELECT * FROM crud_generator.analyze_table(%s, %s)` parametrizado; retorna
+  `tuple[ColumnMetadata, ...]` (dataclass frozen de 12 campos, §3.1;
+  `data_type` preservado como texto de `format_type()`; orden de filas
+  preservado). Lectura: `autocommit=True` sin commit/rollback; `autocommit=False`
+  + `IDLE` → `rollback` al final (éxito o error); `INTRANS` → no toca la
+  transacción del caller. Errores `psycopg.Error` → `translate_error()` con
+  `SQLSTATE` (ej. `42P01` tabla inexistente); bugs no-PG → rollback si propia
+  + relanzan originales.
+- `ExtensionService.generate_crud(schema, table, operations, *, do_replace=False)`
+  (03-10, capa servicio): `SELECT * FROM crud_generator.generate_crud(%s, %s, %s, %s)`
+  parametrizado con `operations` como `[op.value, ...]` (lista psycopg→`text[]`);
+  retorna `tuple[GenerationResult, ...]` (`operation: CrudOperation`,
+  `status: GenerationStatus`, resto preservado; `identity_arguments` sin parsear).
+  Un `operation` NULL devuelto por PostgreSQL a través de esta API se trata
+  como violación de contrato (`ValueError`), porque el servicio no permite
+  enviar `operations` NULL/vacío/`None`.
+  Validaciones: `schema`/`table` str no vacíos (si no: `TypeError`/`ValueError`,
+  valor preservado exacto); `operations` iterable de `CrudOperation` no vacío,
+  sin strings silenciosos, sin duplicados (`TypeError`/`ValueError`), orden
+  preservado; `do_replace` estrictamente `bool` (`TypeError` si no). DDL real:
+  `autocommit=True` sin commit/rollback manual; `autocommit=False` + `IDLE` →
+  éxito `commit` una vez / error `rollback` una vez; `INTRANS` → nunca commit
+  ni rollback (ni siquiera ante error). `status` desconocido u `operation`
+  desconocida desde PG → `ValueError` (violación de contrato, sin fallback).
+  Tests unitarios con fakes (`fetchall`/`commit`/`rollback`) en
+  `tests/test_extension_service.py`; `ApplicationFlow`/CLI aún no llaman a
+  estos métodos.
 - Nombre de extensión CONFIRMADO 01-10 (Joyce): `crud_generator` (`extension/crud_generator.control`,
   `schema = crud_generator`). `DEFAULT_EXTENSION_NAME` deja de ser provisional; coincide con
   `CONTRACTS.md` §3. API `analyze_table`/`generate_crud` cerrada — ver `ARMANDO_JOSEPH_INTEGRATION_HANDOFF.md`
