@@ -114,7 +114,16 @@ Por qué afecta nuestra área:
 ## Armando — Python + Interfaz
 
 ### CR-ARMANDO-001 — Vía de aplicación de privilegios
-Estado: **REQUIERE COORDINACIÓN**
+Estado: **RESUELTA** (03-10-2026).
+
+Resolución real: Python usa `PrivilegeService.apply_matrix` con
+`GRANT`/`REVOKE` directos (dos llaves INVOKER: `EXECUTE` sobre procedure +
+permiso de tabla + `USAGE ON SCHEMA`). `ApplicationFlow` asume `crud_admin`
+mediante `ConnectionManager.assume_role`. No se usa una función privilegiada
+de la extensión para grants. Probado realmente el 03-10-2026 (E2E
+`armando_e2e`, 3 roles, 12+4 procedures, owner `crud_admin`).
+
+Texto histórico (requerimiento original, conservado como registro):
 
 Necesitamos definir:
 - ¿Python ejecuta `GRANT/REVOKE` directo con credencial alta, o llama a una
@@ -128,7 +137,14 @@ Información que necesitamos de Armando:
 - Rol/credencial que usará Python y punto del flujo donde aplica privilegios.
 
 ### CR-ARMANDO-002 — Resultado de `generate_crud`
-Estado: **REQUIERE COORDINACIÓN**
+Estado: **RESUELTA** (03-10-2026).
+
+Resolución: la CLI presenta todos los `GenerationResult`:
+`success`, `not_applicable`, `procedure_conflict`, `validation_error`.
+Errores reales PostgreSQL siguen siendo excepciones mapeadas y conservan
+`SQLSTATE`; no se convierten falsamente en esos status.
+
+Texto histórico (requerimiento original, conservado como registro):
 
 Necesitamos definir:
 - Formato que Python mostrará para: éxito, no aplicable, validación, inexistente,
@@ -139,7 +155,16 @@ Por qué afecta nuestra área:
   (SQLSTATE visibles: 42501, 42883, 42P01, etc.).
 
 ### CR-ARMANDO-003 — Validación real de permisos desde Python
-Estado: **REQUIERE COORDINACIÓN**
+Estado: **RESUELTA** (03-10-2026).
+
+Resolución: `PermissionProbeService` usa `SET LOCAL ROLE` + `CALL` real en
+transacción `force_rollback`. `42501` durante `CALL` = `DENIED`. `SET ROLE`
+no posible = `RoleAssumptionError` (no se confunde con `DENIED`).
+Certificación E2E real 03-10-2026 confirmó
+vendedor/supervisor/administrador (`ALLOWED`/`DENIED 42501`, `42P01`,
+PK compuesta, generated).
+
+Texto histórico (requerimiento original, conservado como registro):
 
 Necesitamos definir:
 - ¿Python verificará permisos con `SET ROLE` + `CALL` real (exigido para la demo),

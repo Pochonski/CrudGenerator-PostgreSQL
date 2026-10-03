@@ -7,13 +7,15 @@ propia que la UI podrá mostrar sin exponer la contraseña.
 
 from __future__ import annotations
 
-from contextlib import suppress
+from collections.abc import Iterator
+from contextlib import contextmanager, suppress
 from dataclasses import dataclass
 from types import TracebackType
 from typing import Any, Self
 
 import psycopg
 from psycopg import errors as pg_errors
+from psycopg import sql
 
 from crud_generator.config import DatabaseConfig
 
@@ -241,6 +243,79 @@ class ConnectionManager:
             conn.rollback()
         except Exception as exc:
             raise _map_error(exc, self._config) from exc
+
+    @contextmanager
+    def assume_role(self, role_name: str) -> Iterator[None]:
+        """Asume un rol vía ``SET ROLE`` session-level y revierte con ``RESET ROLE``.
+
+        El rol es un identificador: se compone con ``sql.Identifier``, nunca
+        interpolado. Tras ``SET ROLE`` verifica ``current_user`` y falla si no
+        coincide. Si ``current_user`` ya es el rol pedido, es no-op seguro
+        (sin ``SET``/``RESET``). Si ``SET ROLE`` tuvo éxito, ``RESET ROLE`` se
+        intenta siempre en ``finally``, incluso si falla la verificación
+        posterior o el cuerpo (preservando el error original si ``RESET``
+        también falla). Los errores
+        ``psycopg.Error`` (p. ej. ``42501`` sin capacidad ``SET``) se mapean
+        con la jerarquía propia preservando ``SQLSTATE``.
+
+        Nota transaccional: ``SET ROLE`` es session-level y este contexto está
+        pensado para conexiones con ``autocommit=True`` (el default, usado por
+        ``ApplicationFlow``). No cambia ``SESSION AUTHORIZATION`` ni concede
+        memberships.
+        """
+        if not isinstance(role_name, str):
+            raise TypeError(
+                f"El rol debe ser str, no {type(role_name).__name__}."
+            )
+        if not role_name.strip():
+            raise ValueError("El rol no puede estar vacío.")
+        conn = self.connect()
+        try:
+            with conn.cursor() as cursor:
+                cursor.execute("SELECT current_user")
+                row = cursor.fetchone()
+            current = str(row[0]) if row is not None else None
+        except Exception as exc:
+            raise _map_error(exc, self._config) from exc
+        if current == role_name:
+            yield
+            return
+        try:
+            with conn.cursor() as cursor:
+                cursor.execute(
+                    sql.SQL("SET ROLE {}").format(sql.Identifier(role_name))
+                )
+        except Exception as exc:
+            raise _map_error(exc, self._config) from exc
+        role_was_set = True
+        body_error: BaseException | None = None
+        try:
+            try:
+                with conn.cursor() as cursor:
+                    cursor.execute("SELECT current_user, session_user")
+                    row = cursor.fetchone()
+                if row is None or str(row[0]) != role_name:
+                    raise UnexpectedDatabaseError(
+                        f"Inconsistencia tras SET ROLE {role_name!r}: "
+                        f"current_user es {row[0] if row else None!r}."
+                    )
+            except DatabaseConnectionError:
+                raise
+            except Exception as exc:
+                raise _map_error(exc, self._config) from exc
+            try:
+                yield
+            except BaseException as exc:
+                body_error = exc
+                raise
+        finally:
+            if role_was_set:
+                try:
+                    with conn.cursor() as cursor:
+                        cursor.execute("RESET ROLE")
+                except Exception as exc:
+                    if body_error is None:
+                        raise _map_error(exc, self._config) from exc
 
     def validate(self) -> ConnectionInfo:
         """Comprueba que la conexión funciona y retorna datos del servidor."""

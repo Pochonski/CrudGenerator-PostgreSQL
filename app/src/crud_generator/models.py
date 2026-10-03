@@ -70,6 +70,67 @@ class CrudOperation(Enum):
 
 
 @dataclass(frozen=True)
+class ColumnMetadata:
+    """Una columna descrita por ``crud_generator.analyze_table``.
+
+    Refleja fielmente las 12 columnas de ``CONTRACTS.md`` §3.1, en el orden
+    devuelto por la extensión (ordenadas por ``ordinal_position``).
+
+    ``data_type`` se preserva como el texto real de ``format_type()`` (con
+    precisión/escala); nunca se convierte a tipos Python. ``pk_position`` es
+    ``None`` cuando la columna no es parte de la PK. ``default_expression``,
+    ``identity_generation`` y ``generated_expression`` son ``None`` cuando no
+    aplican (ver ``_table_columns`` en ``crud_generator--1.0.sql``).
+    """
+
+    column_name: str
+    data_type: str
+    ordinal_position: int
+    is_primary_key: bool
+    pk_position: int | None
+    is_nullable: bool
+    has_default: bool
+    default_expression: str | None
+    is_identity: bool
+    identity_generation: str | None
+    is_generated: bool
+    generated_expression: str | None
+
+
+class GenerationStatus(Enum):
+    """Estados cerrados de ``generate_crud`` (``CONTRACTS.md`` §3.3)."""
+
+    SUCCESS = "success"
+    NOT_APPLICABLE = "not_applicable"
+    PROCEDURE_CONFLICT = "procedure_conflict"
+    VALIDATION_ERROR = "validation_error"
+
+
+@dataclass(frozen=True)
+class GenerationResult:
+    """Una fila de ``crud_generator.generate_crud`` (una por operación).
+
+    ``operation`` es siempre un :class:`CrudOperation`: el servicio valida
+    antes de llamar a PostgreSQL que ``operations`` no esté vacío y que todos
+    sus elementos sean ``CrudOperation`` (sin ``NULL``/``None`` ni strings
+    arbitrarios), por lo que un ``operation = NULL`` devuelto por PostgreSQL
+    a través de esta API se trata como violación de contrato (``ValueError``).
+
+    ``identity_arguments`` se preserva como el string exacto de PostgreSQL
+    (``pg_get_function_identity_arguments``); no se parsea aquí porque se
+    usará tal cual para el futuro ``GRANT EXECUTE``.
+    """
+
+    operation: CrudOperation
+    status: GenerationStatus
+    schema_name: str
+    routine_name: str | None
+    identity_arguments: str | None
+    message: str
+    sqlstate: str | None
+
+
+@dataclass(frozen=True)
 class CrudSelection:
     """Selección estructurada lista para la futura generación.
 

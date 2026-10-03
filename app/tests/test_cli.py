@@ -12,7 +12,12 @@ from crud_generator.db.connection import (
     ServerUnavailableError,
     UnexpectedDatabaseError,
 )
-from crud_generator.models import CrudOperation, SchemaInfo, TableInfo
+from crud_generator.models import (
+    CrudOperation,
+    RoleInfo,
+    SchemaInfo,
+    TableInfo,
+)
 from crud_generator.ui.cli import Cli, parse_number_selection
 
 
@@ -177,3 +182,175 @@ def test_describe_error_maps_each_type() -> None:
     assert "Permiso" in cli.describe_error(InsufficientPrivilegeError("x"))
     assert "inesperado" in cli.describe_error(UnexpectedDatabaseError("x"))
     assert "inesperado" in cli.describe_error(DatabaseConnectionError("x"))
+
+
+def roles() -> list[RoleInfo]:
+    return [
+        RoleInfo("ana", can_login=True, is_superuser=False),
+        RoleInfo("jefa", can_login=True, is_superuser=True),
+        RoleInfo("grupo", can_login=False, is_superuser=False),
+    ]
+
+
+def test_select_single_role() -> None:
+    assert [r.name for r in make_cli(ScriptedIO(["1"])).select_roles(roles())] == [
+        "ana"
+    ]
+
+
+def test_select_multiple_roles() -> None:
+    cli = make_cli(ScriptedIO(["1,3"]))
+
+    assert [r.name for r in cli.select_roles(roles())] == ["ana", "grupo"]
+
+
+def test_select_all_roles() -> None:
+    assert [r.name for r in make_cli(ScriptedIO(["a"])).select_roles(roles())] == [
+        "ana",
+        "jefa",
+        "grupo",
+    ]
+
+
+def test_select_roles_retries_invalid() -> None:
+    io = ScriptedIO(["9", "x", "2"])
+    cli = make_cli(io)
+
+    assert [r.name for r in cli.select_roles(roles())] == ["jefa"]
+    assert sum("inválida" in out for out in io.outputs) == 2
+
+
+def test_select_roles_empty_list_raises() -> None:
+    with pytest.raises(ValueError):
+        make_cli(ScriptedIO(["1"])).select_roles([])
+
+
+def test_select_roles_warns_superuser_keeps_it() -> None:
+    io = ScriptedIO(["2"])
+    cli = make_cli(io)
+
+    assert [r.name for r in cli.select_roles(roles())] == ["jefa"]
+    text = "\n".join(io.outputs)
+    assert "superusuario" in text
+
+
+def test_ask_replace_existing_accepts_s_n_default() -> None:
+    assert make_cli(ScriptedIO(["s"])).ask_replace_existing() is True
+    assert make_cli(ScriptedIO(["n"])).ask_replace_existing() is False
+    assert make_cli(ScriptedIO([""])).ask_replace_existing() is False
+
+
+def test_ask_replace_existing_retries_invalid() -> None:
+    io = ScriptedIO(["x", "s"])
+    cli = make_cli(io)
+
+    assert cli.ask_replace_existing() is True
+    assert sum("inválida" in out for out in io.outputs) == 1
+
+
+def test_ask_operation_allowed_s_n() -> None:
+    role = RoleInfo("ana", can_login=True, is_superuser=False)
+
+    assert make_cli(ScriptedIO(["s"])).ask_operation_allowed(
+        role, CrudOperation.READ
+    ) is True
+    assert make_cli(ScriptedIO(["n"])).ask_operation_allowed(
+        role, CrudOperation.READ
+    ) is False
+
+
+def test_ask_operation_allowed_retries_empty_and_invalid() -> None:
+    io = ScriptedIO(["", "x", "n"])
+    cli = make_cli(io)
+    role = RoleInfo("ana", can_login=True, is_superuser=False)
+
+    assert cli.ask_operation_allowed(role, CrudOperation.DELETE) is False
+    assert sum("inválida" in out for out in io.outputs) == 2
+
+
+def test_show_table_metadata_lists_columns() -> None:
+    from crud_generator.models import ColumnMetadata
+
+    io = ScriptedIO([])
+    cli = make_cli(io)
+    cli.show_table_metadata(
+        "lab",
+        "producto",
+        [
+            ColumnMetadata(
+                column_name="id",
+                data_type="integer",
+                ordinal_position=1,
+                is_primary_key=True,
+                pk_position=1,
+                is_nullable=False,
+                has_default=False,
+                default_expression=None,
+                is_identity=False,
+                identity_generation=None,
+                is_generated=False,
+                generated_expression=None,
+            )
+        ],
+    )
+
+    text = "\n".join(io.outputs)
+    assert "lab.producto" in text
+    assert "id" in text and "integer" in text and "PK" in text
+
+
+def test_show_generation_results_lists_statuses() -> None:
+    from crud_generator.models import GenerationResult, GenerationStatus
+
+    io = ScriptedIO([])
+    cli = make_cli(io)
+    cli.show_generation_results(
+        "t",
+        [
+            GenerationResult(
+                operation=CrudOperation.INSERT,
+                status=GenerationStatus.SUCCESS,
+                schema_name="lab",
+                routine_name="t_insertar",
+                identity_arguments="IN p_1 integer",
+                message="ok",
+                sqlstate=None,
+            ),
+            GenerationResult(
+                operation=CrudOperation.UPDATE,
+                status=GenerationStatus.NOT_APPLICABLE,
+                schema_name="lab",
+                routine_name=None,
+                identity_arguments=None,
+                message="sin PK",
+                sqlstate=None,
+            ),
+        ],
+    )
+
+    text = "\n".join(io.outputs)
+    assert "success" in text and "t_insertar" in text
+    assert "not_applicable" in text
+
+
+def test_show_privilege_changes_lists_roles() -> None:
+    from crud_generator.privileges.service import PrivilegeChange
+
+    io = ScriptedIO([])
+    cli = make_cli(io)
+    cli.show_privilege_changes(
+        "t",
+        [
+            PrivilegeChange(
+                role="ana",
+                operation=CrudOperation.INSERT,
+                allowed=True,
+                schema_name="lab",
+                table_name="t",
+                routine_name="t_insertar",
+            )
+        ],
+    )
+
+    text = "\n".join(io.outputs)
+    assert "ana" in text and "INSERT" in text and "habilitado" in text
