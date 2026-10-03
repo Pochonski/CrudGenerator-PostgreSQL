@@ -66,6 +66,10 @@ Construir una aplicación Python que permita al administrador conectarse a Postg
 - [x] Privilegios (capa servicio: `PrivilegeService.apply_matrix` con GRANT/REVOKE
   directos de dos llaves INVOKER; `PrivilegeMatrix` sigue siendo solo intención;
   sin conectar aún a `ApplicationFlow`/CLI; SET ROLE + CALL pendiente CR-ARMANDO-003)
+- [x] Prueba efectiva (`PermissionProbeService.probe`: SET LOCAL ROLE + CALL
+  real con `transaction(force_rollback=True)`; ALLOWED vs DENIED 42501;
+  `RoleAssumptionError` separado; unit tests con fakes + integración real
+  opcional; sin conectar aún a `ApplicationFlow`/CLI)
 - [x] Manejo de errores (base de conexión: jerarquía propia + SQLSTATE preservado)
 - [ ] Integración completa (capa servicio lista y testeada con fakes; falta conectar `ApplicationFlow`/CLI + prueba con tabla nueva)
 - [ ] Prueba con tabla nueva (`lab.tabla_virgen` intacta, reservada)
@@ -184,6 +188,24 @@ Construir una aplicación Python que permita al administrador conectarse a Postg
   `SQLSTATE`; `TypeError`/`ValueError` nunca se convierten. Limitación: REVOKE
   directo no garantiza denegación efectiva ante herencia/PUBLIC/superuser/owner
   (validación real con SET ROLE + CALL pendiente). Sin `GRANT USAGE ON SEQUENCE`.
+- `PermissionProbeService.probe(role, generation_result, arguments=())`
+  (`privileges/probe.py` + `PermissionProbeStatus` ALLOWED/DENIED +
+  `PermissionProbeResult` frozen + `RoleAssumptionError` que extiende
+  `InsufficientPrivilegeError` con `sqlstate`/`original`): prueba UN procedure
+  SUCCESS como UN rol real. `SET LOCAL ROLE` con `Identifier` + verificación
+  `SELECT current_user, session_user` (mismatch → `ValueError`); `CALL`
+  compuesto con `Identifier` + `Placeholder` por argumento (cero args →
+  `CALL s.r()`); output vía `cursor.description`/`fetchone` preservado tal
+  cual (refcursor solo conserva el nombre, sin `FETCH` todavía). `42501` en
+  SET → `RoleAssumptionError` (no DENIED); `42501` en CALL → DENIED con
+  `sqlstate`; `P0002`/otros → `translate_error()` preservando `SQLSTATE`.
+  Aislamiento: exige conexión `IDLE` (`INTRANS` → `RuntimeError` antes de
+  cualquier SQL) y todo ocurre en `with conn.transaction(force_rollback=True)`
+  (vale con `autocommit=True/False`); DML del probe nunca persiste y no hay
+  `commit`/`rollback` manual ni `RESET ROLE` obligatorio. Unit tests con fakes
+  en `tests/test_permission_probe.py`; integración real opcional en
+  `tests/test_permission_probe_integration.py` (marcada `integration`, sin
+  tocar `lab.tabla_virgen`, con `pytest.skip` defensivo).
 - No se tocó ningún contrato global desde Python (`CONTRACTS.md`/`DECISIONS.md` los cerró Joyce 01-10).
 
 ## Problemas / descubrimientos
