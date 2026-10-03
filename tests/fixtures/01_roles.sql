@@ -3,7 +3,7 @@
 -- Idempotente. Ejecutar como superuser/postgres o crud_admin.
 --
 -- Modelo:
---   crud_admin         → owner del lab, único que GENERA (propuesta pendiente Joyce).
+--   crud_admin         → owner del lab, único que GENERA (confirmado ADR-011, 01-10).
 --   crud_vendedor      → INSERT + READ
 --   crud_supervisor    → INSERT + READ + UPDATE
 --   crud_administrador → INSERT + READ + UPDATE + DELETE

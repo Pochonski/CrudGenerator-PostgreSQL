@@ -77,14 +77,18 @@ END $$;
 RESET ROLE;
 
 -- MAT-07 | vendedor → READ por PK permitido → SUCCESS (INOUT)
+-- Nota compatibilidad (CONTRACTS.md §3.2, ADR-015): la PK de `consultar` real
+-- es INOUT, por lo que dentro de DO se exige variable en todas las posiciones
+-- (literal 102 falla con 42601). Con fixture viejo (PK IN) la variable también vale.
 SET ROLE crud_vendedor;
 DO $$
 DECLARE
+  v_id integer := 102;
   v_nombre text;
   v_precio numeric;
 BEGIN
   CALL lab.producto_insertar(102, 'Mouse', 10.00);
-  CALL lab.producto_consultar(102, v_nombre, v_precio);
+  CALL lab.producto_consultar(v_id, v_nombre, v_precio);
   RAISE NOTICE 'MAT-07 OK: vendedor READ devuelve nombre=% precio=%', v_nombre, v_precio;
 EXCEPTION WHEN OTHERS THEN
   RAISE NOTICE 'MAT-07 FALLO inesperado: % %', SQLSTATE, SQLERRM;

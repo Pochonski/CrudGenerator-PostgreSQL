@@ -127,33 +127,35 @@ negocio y solo `GRANT EXECUTE`. Ver ADR-011 y experimento
   pide jerarquía (`administrador hereda de supervisor`), documentarlo como decisión
   y probar `SET ROLE` en cada nivel.
 
-### Owner y search_path (propuesta pendiente de Joyce)
+### Owner y search_path (confirmado con Joyce 01-10, ADR-011)
 
-- Owner de fixtures y tablas de prueba: `crud_admin`.
-- Cada procedure fixture fija `SET search_path = app, pg_temp` (o esquema que Joyce
-  defina) y cuerpo con nombres calificados `app.tabla`.
+- Owner de fixtures, tablas de prueba y procedures generados: `crud_admin`.
+- Cada procedure (fixture o generado) fija `SET search_path = <esquema>, pg_temp`
+- y cuerpo con nombres calificados `<esquema>.<tabla>`.
 - Auditoría SQL dinámico (ADR-013): identificadores solo vía `%I`, valores vía `USING`;
   el harness incluye tabla de nombres especiales para probar quoting.
 
 ## Análisis INVOKER vs DEFINER
 
-Ver análisis completo en `DECISIONS.md` ADR-011 (recomendación formal: INVOKER por
-defecto; decisión global pendiente de voto + CR-JOYCE-005). Experimento ejecutado en
-PG18: `tests/security/02_invoker_vs_definer.sql` → EXP-01 INVOKER bloquea sin permiso
-de tabla (42501), EXP-02 DEFINER eleva vía owner.
+Ver análisis completo y decisión adoptada en `DECISIONS.md` ADR-011 (INVOKER por
+defecto, owner `crud_admin`, voto del equipo + confirmación Joyce 01-10).
+Experimento ejecutado en PG18: `tests/security/02_invoker_vs_definer.sql` →
+EXP-01 INVOKER bloquea sin permiso de tabla (42501), EXP-02 DEFINER eleva vía
+owner. Re-verificado contra reales 02-10 (discovery 18/0/18/0, T3 40/40).
 
-## READ — decisión adoptada (ADR-015)
+## READ — decisión adoptada y confirmada (ADR-015 + CR-JOYCE-001/003)
 
-READ adoptado como `consultar` por PK completa, una fila vía INOUT (ADR-015 en
-DECISIONS.md), respaldado por el enunciado §4.5 y el fixture probado `lab.producto_consultar`
-(MAT-07). Pendiente de confirmación de Joyce (CR-JOYCE-001) y del caso sin PK (CR-JOYCE-003).
+READ = `consultar` por PK completa, una fila vía INOUT (ADR-015 en DECISIONS.md),
+respaldado por el enunciado §4.5 y validado con fixtures (MAT-07) y reales
+(MAT-07 con variable, MAT-C, TIXR, S-AUDR). Sin PK: listado vía `refcursor OUT`
+(ADR-009), verificado en MAT-B1R..B3R + B-POL.
 
-## Plantilla de grants parametrizada (Fase A)
+## Plantilla de grants parametrizada (usada con firmas reales 02-10)
 
 `tests/fixtures/05_grants_template.sql` mapea la matriz completa con marcadores
-`<schema>.<tabla>_<operacion>`. A la llegada de las firmas reales de Joyce, se rellena
-con nombres/tipos exactos y sustituye a `04_grants.sql` sin reescribir la lógica
-(CR-JOYCE-002).
+`<schema>.<tabla>_<operacion>`. Se rellenó con las firmas reales del handoff §2.4
+(`CONTRACTS.md` §3.2) y se aplicó en PG18 02-10 para ticket/bitacora/
+catalogo_especial/detalle_factura (matrices 11/12/13 + demo OK).
 
 ## Plan de pruebas Fase 0
 
@@ -166,39 +168,73 @@ Resultado real / Estado. Catálogo de SQLSTATE: `42501` (permiso), `42883`
 
 ## Estado actual
 
-- [x] Roles definidos (Fase 0) — probados en PG18
-- [x] Propietarios definidos (propuesta: crud_admin, pendiente Joyce)
+- [x] Roles definidos — probados en PG18 (fixtures y reales)
+- [x] Propietarios definidos y confirmados: `crud_admin` (ADR-011, 01-10)
 - [x] Estrategia GRANT (diseñada; probada con fixtures en 04_grants.sql) + plantilla 05
 - [x] Estrategia REVOKE (diseñada; NEG-01/02/08/10 probados)
 - [x] EXECUTE validado (con fixtures: MAT-01..07)
 - [x] SECURITY INVOKER/DEFINER analizado + experimento ejecutado (EXP-01/02);
-  decisión global pendiente de voto (ADR-011) y CR-JOYCE-005
+  decisión ADOPTADA (ADR-011, voto equipo + Joyce 01-10) y verificada contra
+  reales 02-10 (T3 40/40, discovery 18/0/18/0)
 - [x] Riesgos SQL dinámico revisados (reglas + fixtures de quoting)
-- [x] PK simple probado (con fixtures MAT-01..07 sobre lab.producto)
-- [x] PK compuesta probada (estructura verificada NEG-07; procedures reales pendientes Joyce)
-- [ ] Autogenerado probado (tabla lab.ticket creada; prueba con procedure pendiente)
-- [ ] Sin PK probado (estructura verificada NEG-05; policy pendiente CR-JOYCE-003)
-- [ ] Procedimiento existente probado (pendiente Joyce CR-JOYCE-004)
-- [x] Usuario autorizado probado (fixtures: MAT-01/04/06/07, NEG-09)
-- [x] Usuario no autorizado probado (fixtures: MAT-02/03/05, NEG-01/02/10)
-- [ ] Tabla no conocida probada (tabla virgen reservada, ver estrategia abajo)
-- [ ] Demo E2E preparada
+- [x] PK simple probado (MAT-01..07 7/7 con fixtures y con reales PG18 02-10;
+  MAT-07/DEMO-04/T4-3b con variable INOUT — vale en ambos modos, CI PASS)
+- [x] PK compuesta: matriz MAT-C1..C9 9/9 con fixtures y con reales PG18 02-10
+  (fix variables INOUT en C2/C5/C7/C8/C9); estructura verificada en NEG-07.
+  Reales generados por Joyce (`lab.detalle_factura_*`, firmas idénticas).
+- [x] Auditoría owner/search_path/SECURITY (T3: `tests/security/05_audit_ownership.sql`,
+  AUD-01..05) — 40/40 OK con fixtures y 40/40 OK contra reales PG18 02-10
+  (owner crud_admin, INVOKER, search_path, esquema, refs calificadas).
+- [x] Higiene PUBLIC + regresión REVOKE (T4: `tests/security/06_revoke_public_audit.sql`,
+  PUB-01/02/03 + REV-01) — OK con fixtures y contra reales PG18 02-10
+  (PUB-01 8/8, matriz EXECUTE 24/24, ciclo REVOKE→GRANT restaurado, señuelo).
+  Sin basura residual; tabla_virgen intacta.
+- [x] Autogenerado IDENTITY/DEFAULT: T2 con fixtures (07, Caso 3 §9) + T2R contra
+  reales (`tests/security/11_ticket_real_matrix.sql`) — TIXR-00, MAT-T1R..T9R,
+  TIXR-AUD 4/4 OK en PG18 02-10, doble pasada idéntica, cero residuos.
+  Convención real: insertar sin id (GENERATED ALWAYS omitido, NULL→DEFAULT).
+- [x] SQL dinámico seguro (T5: `tests/security/08_dynamic_sql_audit.sql`, DYN-00..05)
+  — ADR-013 verificado con pruebas, no solo documentado: %I + USING neutralizan
+  8 valores hostiles (round-trip exacto) y 3 identificadores hostiles (42P01 sin
+  ejecución); señuelo con || inyecta de verdad (tautología 8/8) y el scan lo marca;
+  12 fixtures + 3 seguros limpios; %L innecesario (USING parametriza). Autocontenido:
+  cero residuos, doble pasada idéntica en PG16.
+- [x] Sin PK + tipos especiales contra reales (T6R:
+  `tests/security/12_special_real_matrix.sql`) — S-00R, MAT-S1R..S8R, MAT-B1R..B3R
+  (READ por `refcursor` con FETCH en-transacción), B-POL (`not_applicable`
+  ADR-009 verificado vía generate_crud), N-P1R..P4R, S-AUDR 7/7 OK en PG18 02-10.
+  09/08 quedan para modo fixtures. Política CR-JOYCE-003 RESUELTA e implementada.
+- [x] Tipos especiales con fixtures (T6): `lab.catalogo_especial_*` con quoting/unicode/jsonb/
+  boolean/date/numeric + identity BY DEFAULT; round-trip exacto y DEFAULTs del
+  esquema verificados (09) y contra reales con orden de params real (12).
+- [x] Procedimiento existente probado contra reales
+  (`tests/security/13_conflict_real_matrix.sql` PG18 02-10: CONF-00..05 OK —
+  `procedure_conflict` sin flag, `do_replace` con GRANTs preservados, ADR-010)
+- [x] Usuario autorizado probado (fixtures: MAT-01/04/06/07, NEG-09; reales: idem + T1R/T2R/S1R/S2R/B1R..B3R)
+- [x] Usuario no autorizado probado (fixtures: MAT-02/03/05, NEG-01/02/10; reales: idem + T3R/T4R/T6R/S3R/S4R/S6R)
+- [x] Tabla no conocida probada one-shot (VIR-00..06 OK PG18 02-10, virgen restaurada
+  a limpio; ver estrategia abajo)
+- [x] Demo E2E preparada (`02_demo_script` OK contra reales + guion en `VIDEO_DEMO_PLAN.md`;
+  falta la grabación y el tramo Python de Armando)
 
-### Estrategia tabla virgen (reservada)
+### Estrategia tabla virgen (probada one-shot 02-10, restaurada a limpio)
 
-`lab.tabla_virgen` se crea vacía en el schema y NO se usa en ningún fixture,
-experimento ni prueba Fase 0. Su DDL real solo se define cuando el equipo acuerde
-el protocolo "tabla desconocida del profesor" (columnas+PK desconocidas hasta la
-demo). Cualquier uso accidental invalida la prueba — ver `tests/fixtures/02_schema.sql`.
+`lab.tabla_virgen` se crea vacía y NO forma parte del harness (ningún fixture ni
+matriz la toca; `run_harness.sh` no la ejecuta). El 02-10 se ejecutó la prueba
+final una vez (VIR-00..06: generar 4/4, INSERT+READ vendedor, DELETE 42501, ciclo
+admin/P0002) y se hizo DROP de las rutinas + REVOKE + DELETE, quedando 0 rutinas
+y 0 filas. En la demo en vivo el docente aporta su propia tabla desconocida.
 
 ## Problemas / descubrimientos
 
-- Fase 0: READ vía `PROCEDURE` no puede devolver filas con `CALL` — bloquea matriz
-  READ y demo. Registrado como CR-JOYCE-001, no implementamos workaround propio.
-- Fase 0: falta respuesta de Joyce sobre owner + cláusula SECURITY que emitirá la
-  extensión (CR-JOYCE-005) y sobre policy de procedures existentes (CR-JOYCE-004).
-- Fase 0: falta respuesta de Armando sobre vía de aplicación de privilegios
+- RESUELTO (CR-JOYCE-001): READ por PK vía INOUT + `P0002`; sin PK vía `refcursor`
+  (matrices 11/12 lo prueban contra reales).
+- RESUELTO (CR-JOYCE-004/005): policy `procedure_conflict`/`do_replace` (fichero 13)
+  y owner `crud_admin` + INVOKER + search_path fijo (T3/T4/discovery 02-10).
+- ABIERTO: falta respuesta de Armando sobre vía de aplicación de privilegios
   (directo vs función) y validación real con `SET ROLE` (CR-ARMANDO-001/003).
+- Nota: el PDF del enunciado es escaneado sin texto extraíble — validar requisitos
+  solo con los .md (`documento_completo.md` es la transcripción fiel).
 - PDF del enunciado es escaneado sin texto extraíble — validar requisitos solo con .md.
 
 ## Requiere coordinación

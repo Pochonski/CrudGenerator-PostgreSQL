@@ -9,8 +9,14 @@ aquí se asume aceptada por Joyce o Armando.
 
 ## Joyce — Extensión PostgreSQL
 
+> **Actualización 2026-10-01 (Joyce):** las 5 solicitudes de esta sección quedan
+> **RESUELTAS**. Decisiones registradas en `DECISIONS.md` (ADR-007, ADR-009,
+> ADR-010, ADR-011, ADR-015) y contrato formal en `CONTRACTS.md` §3-4. Se deja
+> el texto original de cada solicitud como registro histórico, con la
+> resolución anotada debajo de cada una.
+
 ### CR-JOYCE-001 — Diseño de READ
-Estado: **DECISIÓN EN CAMINO** — propuesta formal lista (ADR-015), falta que Joyce la confirme/ajuste
+Estado: **RESUELTA** — ADR-015 adoptado tal cual propuesto. Ver `CONTRACTS.md` §3.2/§4.
 
 Contexto: el enunciado §4.5 permite "recuperar información de la tabla de acuerdo con los
 criterios definidos por el equipo", por lo que READ ya no es un bloqueo técnico: es una
@@ -30,7 +36,8 @@ Alternativas evaluadas y descartadas por ahora:
 - Refcursor OUT para multi-fila: documentado como opción, NO requerido para la entrega.
 
 ### CR-JOYCE-002 — Naming, esquema y firmas de procedures generados
-Estado: **PARCIALMENTE RESUELTO** — naming adoptado; pendiente firmas/esquema/anti-colisión
+Estado: **RESUELTA** — esquema destino = esquema de la tabla; tipos vía
+`format_type`; sin anti-colisión especial (ver ADR-007 y `CONTRACTS.md` §3.2).
 
 Resuelto (ADR-007, adoptado): convención del propio enunciado §4.10.
 
@@ -50,7 +57,8 @@ Por qué afecta nuestra área:
   recibir los nombres reales sin rehacer trabajo.
 
 ### CR-JOYCE-003 — Tablas sin PK
-Estado: **REQUIERE COORDINACIÓN** (no bloquea el lab, sí la matriz final)
+Estado: **RESUELTA** — INSERT normal; READ pasa a listado completo (`refcursor
+OUT`); UPDATE/DELETE devuelven `status='not_applicable'`, no se generan. Ver ADR-009.
 
 Necesitamos definir:
 - ¿Se generan solo INSERT/READ y UPDATE/DELETE se reportan "no aplicables"?
@@ -63,7 +71,9 @@ Alternativas que proponemos al equipo:
 - Generar lo aplicable + resultado estructurado `not_applicable` por operación.
 
 ### CR-JOYCE-004 — Procedures existentes
-Estado: **REQUIERE COORDINACIÓN**
+Estado: **RESUELTA** — error (`status='procedure_conflict'`) por defecto;
+reemplazo solo con `do_replace=true` usando `CREATE OR REPLACE PROCEDURE`
+(preserva GRANTs existentes, nunca `DROP+CREATE`). Ver ADR-010.
 
 Necesitamos definir:
 - ¿Error / reemplazo / drop+create / tratamiento según firma?
@@ -76,7 +86,9 @@ Alternativa propuesta:
   solo con flag explícito del administrador.
 
 ### CR-JOYCE-005 — Owner y cláusula SECURITY que emitirá la extensión
-Estado: **REQUIERE COORDINACIÓN** (condiciona ADR-011 que ya tiene recomendación formal)
+Estado: **RESUELTA** — INVOKER adoptado tal cual la recomendación de Joseph;
+owner confirmado `crud_admin` (el mismo rol ya definido en `01_roles.sql`,
+sin introducir un rol nuevo). Ver ADR-011.
 
 Contexto: el área Seguridad adoptó una **recomendación formal** en ADR-011: `SECURITY
 INVOKER` por defecto, con evidencia del experimento (EXP-01/02). La decisión global se
@@ -140,13 +152,50 @@ Por qué afecta nuestra área:
 
 ---
 
+## Guía completa de integración
+
+Ver [`ARMANDO_JOSEPH_INTEGRATION_HANDOFF.md`](ARMANDO_JOSEPH_INTEGRATION_HANDOFF.md):
+cómo llamar `analyze_table`/`generate_crud` desde Python (psycopg), cómo
+ejecutar los procedures generados (INSERT/READ con y sin PK/UPDATE/DELETE),
+el modelo de GRANT de dos llaves, cómo re-generar el laboratorio de pruebas
+con procedures reales en vez de fixtures, y la tabla de firmas reales
+confirmadas para las 5 tablas del laboratorio.
+
+## Nuevo — hallazgos de Joyce al integrar la implementación real (2026-10-02)
+
+Implementé la extensión (`extension/`) y la probé contra el laboratorio
+completo de Joseph (`lab.producto`, `detalle_factura`, `ticket`, `bitacora`,
+`catalogo_especial`) más su propio harness. Dos hallazgos para Joseph:
+
+1. **Bug de un carácter en `tests/security/10_generated_routine_discovery.sql`:**
+   usaba `has_function_privilege('PUBLIC', ...)` (mayúsculas) que PostgreSQL
+   rechaza con `role "PUBLIC" does not exist`; el pseudo-rol se escribe en
+   minúsculas (`'public'`). Lo corregí directamente (dos ocurrencias) porque
+   era un bug objetivo, no una decisión de diseño. Con el fix, el discovery
+   corrió limpio contra las 18 rutinas reales: 18/18 owner `crud_admin`,
+   18/18 `INVOKER`, 18/18 `search_path=lab, pg_temp`, 0 fugas de EXECUTE a
+   PUBLIC.
+2. **`tests/security/01_matrix.sql` MAT-07 necesita un ajuste menor contra
+   routines reales:** corrí `04_grants.sql` + `01_matrix.sql` sin tocarlos
+   contra mis procedures reales de `lab.producto` (firmas idénticas a tu
+   fixture) — MAT-01 a MAT-06 pasaron sin cambios. MAT-07 falla con
+   `42601 ... parameter "p_1" is an output parameter but corresponding
+   argument is not writable` porque en el contrato real (ADR-015) **la PK
+   también es INOUT** en `consultar` (tu fixture la declaraba `IN`). Llamar
+   `CALL producto_consultar(102, v_nombre, v_precio)` con un literal en la
+   posición de la PK falla solo cuando el `CALL` se emite **desde dentro de
+   otro bloque PL/pgSQL**; necesita una variable en las tres posiciones
+   (`CALL producto_consultar(v_id, v_nombre, v_precio)`), confirmado que
+   funciona así. Un `CALL` directo de cliente (psql top-level, psycopg) no
+   tiene esta restricción. Detalle completo en `CONTRACTS.md` §3.2 (READ).
+
 ## Notas compartidas
 
-- Fecha de entrega (ADR-014): **PENDIENTE DE CONFIRMACIÓN CON DOCENTE**
-  (2021 vs 2026 en el enunciado). No asumimos ninguna.
-- `CONTRACTS.md` no se modificó en Fase 0: no inventamos firmas de Joyce.
+- Fecha de entrega (ADR-014): **CONFIRMADA — domingo 4 de octubre de 2026.**
+- `CONTRACTS.md` fue actualizado por Joyce el 2026-10-01 con la API real de la
+  extensión (§3-4). Ya no es una propuesta: es el contrato vigente.
 - Fase A: se adoptaron ADR-007 (naming oficial §4.10) y ADR-015 (READ por PK vía INOUT);
-  ADR-011 tiene recomendación formal (INVOKER). Todo documentado en `DECISIONS.md`
-  como especificación para implementación de Joyce/Armando.
+  ADR-011 ADOPTADA 01-10 (INVOKER + owner `crud_admin`, verificada contra reales
+  02-10: T3 40/40, discovery 18/0/18/0). Todo documentado en `DECISIONS.md`.
 - Harness verificable por Joyce/Armando: `tests/README.md` + scripts SQL puros,
   probados en PostgreSQL 18 (matriz 7/7, negativas 11/11, demo E2E OK con fixtures).

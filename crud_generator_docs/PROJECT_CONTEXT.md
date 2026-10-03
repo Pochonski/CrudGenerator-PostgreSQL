@@ -164,3 +164,4 @@ Toda modificación que cambie una API, contrato, nombre, formato de datos o comp
 - `PYTHON_MEMORY.md`: memoria técnica del agente Python.
 - `SECURITY_MEMORY.md`: memoria técnica del agente de seguridad/integración/pruebas.
 - `INTEGRATION_STATUS.md`: estado general de integración, riesgos y pendientes.
+- `ARMANDO_JOSEPH_INTEGRATION_HANDOFF.md`: guía de Joyce para consumir la extensión real desde Python y para re-apuntar el harness de pruebas a los procedures reales (naming, firmas, privilegios, errores).
