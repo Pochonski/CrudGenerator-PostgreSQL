@@ -333,3 +333,203 @@ def test_rollback_without_connection_raises() -> None:
     manager = ConnectionManager(make_config())
     with pytest.raises(DatabaseConnectionError):
         manager.rollback()
+
+
+class RoleCursor:
+    def __init__(self, conn: RoleConnection) -> None:
+        self._conn = conn
+
+    def __enter__(self) -> Self:
+        return self
+
+    def __exit__(self, *args: object) -> None:
+        return None
+
+    def execute(self, query: Any, params: Any = None) -> None:
+        self._conn.statements.append((query, params))
+        if (
+            self._conn.error is not None
+            and len(self._conn.statements) == self._conn.error_at
+        ):
+            raise self._conn.error
+
+    def fetchone(self) -> tuple[Any, ...] | None:
+        return self._conn.rows.pop(0) if self._conn.rows else None
+
+
+class RoleConnection:
+    def __init__(
+        self,
+        rows: list[tuple[Any, ...] | None],
+        *,
+        error: BaseException | None = None,
+        error_at: int = 0,
+    ) -> None:
+        self.rows = list(rows)
+        self.error = error
+        self.error_at = error_at
+        self.autocommit = True
+        self.closed = False
+        self.statements: list[tuple[Any, Any]] = []
+
+    def cursor(self) -> RoleCursor:
+        return RoleCursor(self)
+
+    def close(self) -> None:
+        self.closed = True
+
+
+def patch_role_connect(
+    monkeypatch: pytest.MonkeyPatch, fake: RoleConnection
+) -> None:
+    monkeypatch.setattr(psycopg, "connect", lambda **kwargs: fake)
+
+
+def test_assume_role_sets_before_yield_and_resets_after(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    fake = RoleConnection([("tester",), ("crud_admin", "tester")])
+    patch_role_connect(monkeypatch, fake)
+    manager = ConnectionManager(make_config())
+    seen: list[bool] = []
+
+    with manager.assume_role("crud_admin"):
+        seen.append(True)
+
+    assert seen == [True]
+    assert len(fake.statements) == 4
+    assert fake.rows == []
+
+
+def test_assume_role_quotes_identifier(monkeypatch: pytest.MonkeyPatch) -> None:
+    from psycopg import sql as _sql
+
+    role = 'a"; DROP --'
+    fake = RoleConnection([("tester",), (role, "tester")])
+    patch_role_connect(monkeypatch, fake)
+    manager = ConnectionManager(make_config())
+
+    with manager.assume_role(role):
+        pass
+
+    set_stmt = fake.statements[1][0]
+    assert isinstance(set_stmt, _sql.Composed)
+    assert "DROP" not in " ".join(
+        part._obj for part in set_stmt if isinstance(part, _sql.SQL)
+    )
+
+
+def test_assume_role_resets_on_body_exception(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    fake = RoleConnection([("tester",), ("crud_admin", "tester")])
+    patch_role_connect(monkeypatch, fake)
+    manager = ConnectionManager(make_config())
+
+    with pytest.raises(RuntimeError, match="boom"), manager.assume_role(
+        "crud_admin"
+    ):
+        raise RuntimeError("boom")
+
+    assert len(fake.statements) == 4
+
+
+def test_assume_role_current_user_mismatch(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    fake = RoleConnection([("tester",), ("otro", "tester")])
+    patch_role_connect(monkeypatch, fake)
+    manager = ConnectionManager(make_config())
+
+    with pytest.raises(UnexpectedDatabaseError), manager.assume_role(
+        "crud_admin"
+    ):
+        pass  # pragma: no cover
+
+    # SET tuvo éxito: RESET debe intentarse aunque falle la verificación.
+    assert len(fake.statements) == 4
+    assert fake.statements[3][0] == "RESET ROLE"
+
+
+def test_assume_role_verify_error_still_resets(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    fake = RoleConnection(
+        [("tester",)],
+        error=StubPgError("boom", "XX000"),
+        error_at=3,
+    )
+    patch_role_connect(monkeypatch, fake)
+    manager = ConnectionManager(make_config())
+
+    with pytest.raises(UnexpectedDatabaseError) as exc_info, manager.assume_role(
+        "crud_admin"
+    ):
+        pass  # pragma: no cover
+
+    assert exc_info.value.sqlstate == "XX000"
+    assert len(fake.statements) == 4
+    assert fake.statements[3][0] == "RESET ROLE"
+
+
+def test_assume_role_statement_order(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    from psycopg import sql as _sql
+
+    fake = RoleConnection([("tester",), ("crud_admin", "tester")])
+    patch_role_connect(monkeypatch, fake)
+    manager = ConnectionManager(make_config())
+
+    with manager.assume_role("crud_admin"):
+        pass
+
+    assert fake.statements[0][0] == "SELECT current_user"
+    assert isinstance(fake.statements[1][0], _sql.Composed)
+    assert fake.statements[2][0] == "SELECT current_user, session_user"
+    assert fake.statements[3][0] == "RESET ROLE"
+
+
+def test_assume_role_42501_is_mapped(monkeypatch: pytest.MonkeyPatch) -> None:
+    fake = RoleConnection(
+        [("tester",)],
+        error=StubPgError("permission denied", "42501"),
+        error_at=2,
+    )
+    patch_role_connect(monkeypatch, fake)
+    manager = ConnectionManager(make_config())
+
+    with pytest.raises(
+        InsufficientPrivilegeError
+    ) as exc_info, manager.assume_role("crud_admin"):
+        pass  # pragma: no cover
+
+    assert exc_info.value.sqlstate == "42501"
+    # SET falló: no debe intentarse RESET.
+    assert len(fake.statements) == 2
+
+
+def test_assume_role_invalid_names_fail_without_connect(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    calls = patch_connect(monkeypatch, FakeConnection())
+    manager = ConnectionManager(make_config())
+
+    with pytest.raises(TypeError), manager.assume_role(123):  # type: ignore[arg-type]
+        pass  # pragma: no cover
+    with pytest.raises(ValueError), manager.assume_role("   "):
+        pass  # pragma: no cover
+    assert calls["count"] == 0
+
+
+def test_assume_role_already_current_is_noop(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    fake = RoleConnection([("crud_admin",)])
+    patch_role_connect(monkeypatch, fake)
+    manager = ConnectionManager(make_config())
+
+    with manager.assume_role("crud_admin"):
+        pass
+
+    assert len(fake.statements) == 1

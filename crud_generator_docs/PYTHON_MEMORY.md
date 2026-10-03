@@ -59,19 +59,27 @@ Construir una aplicación Python que permita al administrador conectarse a Postg
 - [x] Esquemas (`CatalogService.list_schemas`)
 - [x] Tablas (`CatalogService.list_tables`, solo listado; sin columnas/PK — `analyze_table` es de la extensión)
 - [x] Selección de tablas (CLI: una/varias/todas + `CrudSelection`)
-- [x] Análisis de tabla (capa servicio: `ExtensionService.analyze_table` → `tuple[ColumnMetadata, ...]`; `CONTRACTS.md` §3.1; sin conectar aún a `ApplicationFlow`/CLI)
+- [x] Análisis de tabla (capa servicio: `ExtensionService.analyze_table` → `tuple[ColumnMetadata, ...]`; `CONTRACTS.md` §3.1; conectado a `ApplicationFlow`)
 - [x] Selección CRUD (CLI + `CrudOperation`, sin generar)
-- [x] Generación (capa servicio: `ExtensionService.generate_crud` → `tuple[GenerationResult, ...]`; `CONTRACTS.md` §3.2–3.3; sin conectar aún a `ApplicationFlow`/CLI)
+- [x] Generación (capa servicio: `ExtensionService.generate_crud` → `tuple[GenerationResult, ...]`; `CONTRACTS.md` §3.2–3.3; conectado a `ApplicationFlow`)
 - [x] Roles (`CatalogService.list_roles`, solo listado; sin GRANT/REVOKE)
 - [x] Privilegios (capa servicio: `PrivilegeService.apply_matrix` con GRANT/REVOKE
   directos de dos llaves INVOKER; `PrivilegeMatrix` sigue siendo solo intención;
-  sin conectar aún a `ApplicationFlow`/CLI; SET ROLE + CALL pendiente CR-ARMANDO-003)
+  conectado a `ApplicationFlow`)
 - [x] Prueba efectiva (`PermissionProbeService.probe`: SET LOCAL ROLE + CALL
   real con `transaction(force_rollback=True)`; ALLOWED vs DENIED 42501;
   `RoleAssumptionError` separado; unit tests con fakes + integración real
-  opcional; sin conectar aún a `ApplicationFlow`/CLI)
+  opcional; validado contra PostgreSQL real, aún no integrado al flujo
+  interactivo)
+- [x] Flujo integrado (`ApplicationFlow`: conexión → extensión → esquema →
+  tablas → operaciones → `analyze_table`/`generate_crud` por tabla con
+  `do_replace` preguntado → metadata y resultados mostrados → roles reales →
+  `PrivilegeMatrix` construida por tabla (solo `SUCCESS` preguntados) →
+  `apply_matrix` por tabla con `CONFLICT`/`VALIDATION_ERROR` excluyendo
+  privilegios de esa tabla; `PermissionProbeService` aún no integrado al
+  flujo normal; integración real opcional contra `lab.producto`)
 - [x] Manejo de errores (base de conexión: jerarquía propia + SQLSTATE preservado)
-- [ ] Integración completa (capa servicio lista y testeada con fakes; falta conectar `ApplicationFlow`/CLI + prueba con tabla nueva)
+- [x] Integración completa (`ApplicationFlow` conecta analyze → generate → roles → matrix → grants; probado con fakes y contra PostgreSQL real)
 - [ ] Prueba con tabla nueva (`lab.tabla_virgen` intacta, reservada)
 
 ## Decisiones locales
@@ -80,6 +88,16 @@ Construir una aplicación Python que permita al administrador conectarse a Postg
   transacciones abiertas en validaciones de solo lectura; con
   `autocommit=False` hace `rollback` explícito tras validar. Las operaciones
   administrativas futuras usarán transacciones explícitas.
+- `ConnectionManager.assume_role(rol)` (context manager session-level):
+  valida `str` no vacío, compone `SET ROLE` con `sql.Identifier` (nunca
+  interpolado), verifica `SELECT current_user, session_user` (mismatch →
+  error), no-op seguro si ya es el rol, `RESET ROLE` siempre en `finally`
+  (también ante excepción del cuerpo), errores `psycopg.Error` mapeados con
+  `SQLSTATE` (ej. `42501` sin capacidad `SET`). `ApplicationFlow` lo usa con
+  `admin_role="crud_admin"` (ADR-011, inyectable) envolviendo todo el flujo
+  post-conexión para que los procedures queden owned por `crud_admin` aunque
+  la sesión sea `postgres`; si `SET ROLE` falla → error mostrado y
+  `EXIT_STOPPED`, sin conceder memberships.
 - Jerarquía propia de errores (`AuthenticationError`, `DatabaseNotFoundError`,
   `ServerUnavailableError`, `InsufficientPrivilegeError`,
   `UnexpectedDatabaseError`, base `DatabaseConnectionError` con `sqlstate` y

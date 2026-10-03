@@ -18,11 +18,15 @@ from crud_generator.db.connection import (
     ServerUnavailableError,
 )
 from crud_generator.models import (
+    ColumnMetadata,
     CrudOperation,
     CrudSelection,
+    GenerationResult,
+    RoleInfo,
     SchemaInfo,
     TableInfo,
 )
+from crud_generator.privileges.service import PrivilegeChange
 
 DEFAULT_HOST = "localhost"
 DEFAULT_PORT = 5432
@@ -124,12 +128,117 @@ class Cli:
         for operation in selection.operations:
             self.show(f"- {operation.value}")
 
-    def show_generation_pending(self) -> None:
-        self.show("Selección preparada correctamente.")
-        self.show(
-            "La generación automática se habilitará "
-            "cuando la API de la extensión esté disponible."
-        )
+    def ask_replace_existing(self) -> bool:
+        """Pregunta si se reemplazan procedures existentes (do_replace)."""
+        self.show("¿Reemplazar procedures existentes? [s/n] (default: n):")
+        while True:
+            raw = self._read("Reemplazar: ").strip().lower()
+            if raw in ("", "n", "no"):
+                return False
+            if raw in ("s", "si", "sí"):
+                return True
+            self.show("Respuesta inválida: escriba 's' o 'n'.")
+
+    def show_table_metadata(
+        self,
+        schema_name: str,
+        table_name: str,
+        columns: Sequence[ColumnMetadata],
+    ) -> None:
+        """Muestra la metadata real devuelta por la extensión, sin inferir."""
+        self.show(f"Estructura de {schema_name}.{table_name}:")
+        for column in columns:
+            details = [column.data_type]
+            details.append("PK" if column.is_primary_key else "no PK")
+            details.append(
+                "nullable" if column.is_nullable else "NOT NULL"
+            )
+            if column.has_default and column.default_expression is not None:
+                details.append(f"DEFAULT {column.default_expression}")
+            elif column.has_default:
+                details.append("DEFAULT")
+            if column.is_identity:
+                details.append(
+                    f"identity {column.identity_generation or ''}".strip()
+                )
+            if column.is_generated:
+                if column.generated_expression is not None:
+                    details.append(
+                        f"generated ({column.generated_expression})"
+                    )
+                else:
+                    details.append("generated")
+            self.show(f"- {column.column_name}: {', '.join(details)}")
+
+    def show_generation_results(
+        self,
+        table_name: str,
+        results: Sequence[GenerationResult],
+    ) -> None:
+        """Muestra cada fila de generate_crud sin ocultar ningún status."""
+        self.show(f"Generación para {table_name}:")
+        for result in results:
+            self.show(
+                f"- {result.operation.value}: {result.status.value}"
+            )
+            if result.routine_name is not None:
+                self.show(f"  rutina: {result.routine_name}")
+            self.show(f"  mensaje: {result.message}")
+            if result.sqlstate is not None:
+                self.show(f"  SQLSTATE: {result.sqlstate}")
+
+    def select_roles(self, roles: Sequence[RoleInfo]) -> list[RoleInfo]:
+        """Selección de roles: `1`, `1,3` o `a` (todos). Sin duplicados."""
+        if not roles:
+            raise ValueError("No hay roles visibles para seleccionar.")
+        self.show("Seleccionar roles (ej. 1,3 o 'a' para todos):")
+        for index, role in enumerate(roles, start=1):
+            marker = " (superusuario)" if role.is_superuser else ""
+            login = "" if role.can_login else " [NOLOGIN]"
+            self.show(f"{index}. {role.name}{marker}{login}")
+            if role.is_superuser:
+                self.show(
+                    "  Aviso: es superusuario; las comprobaciones normales de "
+                    "privilegios no lo restringen efectivamente y otorgarle "
+                    "EXECUTE es innecesario (ya puede hacerlo todo)."
+                )
+        while True:
+            raw = self._read("Roles: ").strip()
+            try:
+                chosen = parse_number_selection(raw, len(roles))
+            except ValueError as exc:
+                self.show(f"Selección inválida: {exc}")
+                continue
+            return [roles[index - 1] for index in chosen]
+
+    def ask_operation_allowed(
+        self, role: RoleInfo, operation: CrudOperation
+    ) -> bool:
+        """Pregunta si un rol puede ejecutar una operación (s/n, sin default)."""
+        while True:
+            raw = self._read(
+                f"Rol: {role.name}\nPermitir {operation.value}? [s/n]: "
+            ).strip().lower()
+            if raw in ("s", "si", "sí"):
+                return True
+            if raw in ("n", "no"):
+                return False
+            self.show("Respuesta inválida: escriba 's' o 'n'.")
+
+    def show_privilege_changes(
+        self, table_name: str, changes: Sequence[PrivilegeChange]
+    ) -> None:
+        """Muestra los cambios aplicados por tabla (solo rol × SUCCESS)."""
+        self.show(f"Privilegios aplicados para {table_name}:")
+        for change in changes:
+            if change.allowed:
+                state = "habilitado (privilegios directos aplicados)"
+            else:
+                state = "deshabilitado (privilegios directos revocados)"
+            self.show(
+                f"- {change.role} {change.operation.value}: {state} "
+                f"({change.routine_name})"
+            )
 
     def describe_error(self, exc: DatabaseConnectionError) -> str:
         """Mensaje comprensible para el usuario, sin traceback."""
