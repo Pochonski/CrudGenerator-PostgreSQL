@@ -1,13 +1,10 @@
 # Plan de vídeo (§10) y demo en vivo (§11) — evidencia de funcionamiento
 
 **Fuente:** `documento_completo.md` §10 (vídeo, 10 pasos) y §11 (demo en vivo, 10 pasos).
-**Estado:** guion validado contra PG18 local 02-10 (transcripts reales). La grabación
-es manual. Duración objetivo: 8–12 min.
-
-> Brecha conocida: `app/` (Armando) aún no llama `generate_crud` (hitos 3-4).
-> El guion muestra Python para conexión/selección (§4.1–4.4) y la extensión vía
-> `psql` para generación/privilegios (§4.5–4.10). Cuando Armando integre el tramo,
-> los pasos 6-8 se re-graban desde la CLI sin cambiar el resto.
+**Estado:** guion actualizado al flujo Python integrado 03-10-2026 (E2E
+`armando_e2e` validado: `ApplicationFlow` real genera y aplica privilegios;
+la ejecución efectiva se demuestra con `CALL`/`PermissionProbeService`).
+La grabación es manual. Duración objetivo: 8–12 min.
 
 ## Escena 0 — Base limpia (30 s, off-camera preferible)
 
@@ -51,17 +48,24 @@ CLI lista tablas (`relkind r/p`) → mostrar una / varias / todas (`a`).
 
 ## Paso 6 — Generación de procedimientos (§10.6)
 
-Vía extensión (hasta integración Python):
+Desde la CLI Python real (`ApplicationFlow`):
 
-```sql
-SET ROLE crud_admin;
-SELECT operation, status FROM crud_generator.generate_crud('lab','producto',
-  ARRAY['INSERT','READ','UPDATE','DELETE']);
--- 4 × success. Repetir con detalle_factura (PK compuesta) y ticket (identity).
-RESET ROLE;
-```
+- Selección de operaciones (`INSERT, READ, UPDATE, DELETE`, `a` todas).
+- Elección `do_replace` (`n` en creación fresca).
+- Por tabla: metadata real de `analyze_table` mostrada en CLI.
+- `generate_crud` real → `4 × success` por tabla (ej. `lab.producto`,
+  `detalle_factura` con PK compuesta, `ticket` con identity).
+
+Nota histórica: hasta el 02-10 este paso se mostraba vía `psql` directo
+(`SELECT ... generate_crud(...)` con `SET ROLE crud_admin`); desde el
+03-10 se graba desde la CLI Python integrada.
 
 ## Paso 7 — Ejecución de los procedimientos (§10.7)
+
+La aplicación interactiva NO pide valores CRUD ni ejecuta los procedures
+generados (administra generación y privilegios). La ejecución efectiva se
+demuestra con `CALL` real (vía `psql` o `PermissionProbeService` con
+rollback):
 
 ```sql
 SET ROLE crud_vendedor;
@@ -74,6 +78,16 @@ RESET ROLE;
 
 ## Paso 8 — Asignación de privilegios (§10.8)
 
+Desde la CLI Python real (`ApplicationFlow` → `PrivilegeService.apply_matrix`):
+
+- Selección de roles (ej. `crud_vendedor`, `crud_supervisor`,
+  `crud_administrador`).
+- Matriz por tabla (preguntas `Permitir <OP>? [s/n]` por cada `SUCCESS` × rol).
+- Doble llave INVOKER aplicada (ADR-011): `EXECUTE` + permiso de tabla +
+  `USAGE ON SCHEMA`.
+
+Equivalente SQL (referencia, no grabación principal):
+
 ```sql
 -- Doble llave INVOKER (ADR-011): EXECUTE + permiso de tabla.
 GRANT EXECUTE ON PROCEDURE lab.producto_insertar(integer,text,numeric) TO crud_vendedor;
@@ -83,6 +97,9 @@ GRANT SELECT, INSERT ON lab.producto TO crud_vendedor;
 ```
 
 ## Paso 9 — Validación con diferentes usuarios (§10.9)
+
+Con `CALL` real o `PermissionProbeService` (la CLI interactiva no ejecuta
+CRUD; solo administra generación y privilegios):
 
 ```sql
 SET ROLE crud_vendedor;      CALL lab.producto_eliminar(101);  -- ERROR 42501
@@ -100,7 +117,9 @@ En vivo el docente aporta su tabla: repetir VIR-01..05 con su nombre.
 ## Checklist pre-grabación
 
 - [ ] Base demo fresca (roles+schema+extensión, sin datos de prueba).
-- [ ] `app/` corriendo con `crud_admin` (pasos 2-5 sin cortes).
-- [ ] `psql` listo con los bloques 6-9 (copiar/pegar, sin typos en vivo).
+- [ ] `app/` corriendo con flujo Python integrado (pasos 2-6 y 8 desde la CLI,
+  sin `psql` para generar ni para grants).
+- [ ] `psql` / `PermissionProbeService` listo para pasos 7 y 9 (ejecución
+  efectiva con `CALL` real; la CLI no pide valores CRUD).
 - [ ] Transcript virgen a mano por si piden la tabla desconocida.
 - [ ] Confirmar con el docente formato de entrega del vídeo (ADR-014: fecha 04-10-2026).

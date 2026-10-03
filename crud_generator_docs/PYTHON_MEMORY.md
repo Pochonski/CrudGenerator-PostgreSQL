@@ -50,7 +50,7 @@ Construir una aplicación Python que permita al administrador conectarse a Postg
 - Usar los contratos definidos en `CONTRACTS.md`.
 - La UI debe estar separada de la lógica de acceso a datos tanto como sea razonable.
 
-## Estado actual (03-10-2026, capa servicio analyze/generate testeada)
+## Estado actual (03-10-2026, integración productiva + E2E real completados)
 
 - [x] Arquitectura de módulos (base: `config` + `db/connection`)
 - [x] Biblioteca PostgreSQL confirmada (`psycopg>=3.2`, ADR-005)
@@ -60,9 +60,9 @@ Construir una aplicación Python que permita al administrador conectarse a Postg
 - [x] Tablas (`CatalogService.list_tables`, solo listado; sin columnas/PK — `analyze_table` es de la extensión)
 - [x] Selección de tablas (CLI: una/varias/todas + `CrudSelection`)
 - [x] Análisis de tabla (capa servicio: `ExtensionService.analyze_table` → `tuple[ColumnMetadata, ...]`; `CONTRACTS.md` §3.1; conectado a `ApplicationFlow`)
-- [x] Selección CRUD (CLI + `CrudOperation`, sin generar)
+- [x] Selección CRUD (CLI + `CrudOperation`; genera vía `ApplicationFlow` → `generate_crud` real)
 - [x] Generación (capa servicio: `ExtensionService.generate_crud` → `tuple[GenerationResult, ...]`; `CONTRACTS.md` §3.2–3.3; conectado a `ApplicationFlow`)
-- [x] Roles (`CatalogService.list_roles`, solo listado; sin GRANT/REVOKE)
+- [x] Roles (`CatalogService.list_roles`: listado; la aplicación de permisos vive en `PrivilegeService.apply_matrix` ya conectado al flujo)
 - [x] Privilegios (capa servicio: `PrivilegeService.apply_matrix` con GRANT/REVOKE
   directos de dos llaves INVOKER; `PrivilegeMatrix` sigue siendo solo intención;
   conectado a `ApplicationFlow`)
@@ -76,11 +76,22 @@ Construir una aplicación Python que permita al administrador conectarse a Postg
   `do_replace` preguntado → metadata y resultados mostrados → roles reales →
   `PrivilegeMatrix` construida por tabla (solo `SUCCESS` preguntados) →
   `apply_matrix` por tabla con `CONFLICT`/`VALIDATION_ERROR` excluyendo
-  privilegios de esa tabla; `PermissionProbeService` aún no integrado al
-  flujo normal; integración real opcional contra `lab.producto`)
+  privilegios de esa tabla; `PermissionProbeService` no forma parte del flujo
+  interactivo normal (solo validación/E2E); integración real validada E2E
+  03-10-2026 contra `armando_e2e`)
 - [x] Manejo de errores (base de conexión: jerarquía propia + SQLSTATE preservado)
 - [x] Integración completa (`ApplicationFlow` conecta analyze → generate → roles → matrix → grants; probado con fakes y contra PostgreSQL real)
-- [ ] Prueba con tabla nueva (`lab.tabla_virgen` intacta, reservada)
+- [x] Prueba con tabla nueva técnica completada 03-10-2026 con
+  `armando_e2e.sorpresa_final` (4 `success` sin cambio de código);
+  `lab.tabla_virgen` permanece intacta/reservada para demo final
+
+## Evidencia E2E 03-10-2026 (compacta)
+
+PG 16.15, extensión 1.0, 3 roles, 16 procedures incluyendo `sorpresa_final`,
+owner `crud_admin`, INVOKER, `ALLOWED`/`DENIED 42501`, `42P01` tabla
+inexistente, PK compuesta + generated verificados, `lab.tabla_virgen` 0/0
+antes y después. Detalle completo en transcript fuera del repo
+(`/tmp/armando_e2e_final.txt`); no se pega aquí.
 
 ## Decisiones locales
 
@@ -159,8 +170,8 @@ Construir una aplicación Python que permita al administrador conectarse a Postg
   ni rollback (ni siquiera ante error). `status` desconocido u `operation`
   desconocida desde PG → `ValueError` (violación de contrato, sin fallback).
   Tests unitarios con fakes (`fetchall`/`commit`/`rollback`) en
-  `tests/test_extension_service.py`; `ApplicationFlow`/CLI aún no llaman a
-  estos métodos.
+  `tests/test_extension_service.py`; `ApplicationFlow`/CLI llaman a este
+  método en el flujo normal (generación real validada E2E 03-10-2026).
 - Nombre de extensión CONFIRMADO 01-10 (Joyce): `crud_generator` (`extension/crud_generator.control`,
   `schema = crud_generator`). `DEFAULT_EXTENSION_NAME` deja de ser provisional; coincide con
   `CONTRACTS.md` §3. API `analyze_table`/`generate_crud` cerrada — ver `ARMANDO_JOSEPH_INTEGRATION_HANDOFF.md`
@@ -169,8 +180,8 @@ Construir una aplicación Python que permita al administrador conectarse a Postg
   `Cli` con I/O inyectable (password con `getpass`, defaults host/puerto,
   reintentos); `ApplicationFlow` (factorías inyectables) orquesta
   conexión → extensión → esquema → tablas → operaciones → `CrudSelection`
-  inmutable (`schema`, `tables`, `operations`) y mensaje final de generación
-  pendiente. `NOT_INSTALLED`/`NOT_ACCESSIBLE`/`ERROR` detienen el flujo sin
+  inmutable (`schema`, `tables`, `operations`) y generación real
+  (`analyze_table`/`generate_crud` por tabla, validada E2E 03-10-2026). `NOT_INSTALLED`/`NOT_ACCESSIBLE`/`ERROR` detienen el flujo sin
   intentar CRUD; errores muestran mensaje sin traceback.
 - Matriz de privilegios (`privileges/matrix.py`, solo modelos sin SQL):
   `PrivilegeAssignment` (frozen: `role` + `CrudOperation`) y `PrivilegeMatrix`
@@ -205,7 +216,7 @@ Construir una aplicación Python que permita al administrador conectarse a Postg
   caller sin commit/rollback. Errores `psycopg.Error` → `translate_error()` con
   `SQLSTATE`; `TypeError`/`ValueError` nunca se convierten. Limitación: REVOKE
   directo no garantiza denegación efectiva ante herencia/PUBLIC/superuser/owner
-  (validación real con SET ROLE + CALL pendiente). Sin `GRANT USAGE ON SEQUENCE`.
+  (validación real con SET ROLE + CALL vía `PermissionProbeService`, validada E2E 03-10-2026). Sin `GRANT USAGE ON SEQUENCE`.
 - `PermissionProbeService.probe(role, generation_result, arguments=())`
   (`privileges/probe.py` + `PermissionProbeStatus` ALLOWED/DENIED +
   `PermissionProbeResult` frozen + `RoleAssumptionError` que extiende
@@ -236,4 +247,4 @@ Registrar cualquier cambio en firmas, nombres, parámetros o resultados que afec
 
 - [x] ~~JOYCE (nombre de la extensión)~~ RESUELTO 01-10: `crud_generator` confirmado (`.control` + `CONTRACTS.md` §3).
 - [x] ~~JOYCE (EXECUTE sobre funciones públicas)~~ RESUELTO 01-10: firmas cerradas (CR-JOYCE-001/002); pendiente solo que Python implemente verificación fina si aplica.
-- Pendiente ARMANDO: CR-ARMANDO-001 (vía GRANT/REVOKE), CR-ARMANDO-002 (formato `generate_crud`), CR-ARMANDO-003 (validación `SET ROLE + CALL`).
+- [x] ~~ARMANDO: CR-ARMANDO-001/002/003~~ RESUELTOS 03-10-2026 (E2E `armando_e2e`; ver `COORDINATION_REQUESTS.md`).
