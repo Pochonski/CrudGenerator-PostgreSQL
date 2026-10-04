@@ -26,9 +26,43 @@ Esperado: `crud_generator | 1.0`.
 
 ```bash
 cd app && python -m crud_generator.main
-# Servidor [localhost] / Puerto / Base devdb / Usuario crud_admin / Contraseña
-# → "Conexión exitosa / Base de datos: devdb / Usuario: crud_admin"
+# Servidor [localhost] / Puerto / Base devdb / Usuario postgres / Contraseña ********
 ```
+
+Flujo REAL implementado (`application.py` + `db/connection.py`):
+
+1. La aplicación se autentica con una cuenta PostgreSQL con `LOGIN`
+   (`crud_admin` es `NOLOGIN` en el laboratorio real, por lo que NO puede
+   usarse como usuario de autenticación directa).
+2. Esa cuenta debe poder ejecutar `SET ROLE crud_admin`. En el contenedor
+   local de desarrollo/demo se usó `postgres` (solo laboratorio/demo local;
+   NO se recomienda superusuario como modelo productivo; en otro entorno
+   puede utilizarse cualquier usuario `LOGIN` autorizado a `SET ROLE
+   crud_admin`). No se escribe ningún password en el guion.
+3. Tras conectarse, `ApplicationFlow` entra en
+   `ConnectionManager.assume_role("crud_admin")`.
+4. Bajo ese rol administrativo se ejecutan la detección/uso administrativo de
+   la extensión según el flujo, la generación CRUD y la aplicación de
+   privilegios.
+5. Al salir, `ConnectionManager` hace `RESET ROLE`.
+
+Ejemplo documental correcto:
+
+```text
+Servidor: localhost
+Puerto: <puerto de demo>
+Base: devdb
+Usuario: postgres   # solo laboratorio/demo local
+Contraseña: ********
+
+→ Conexión autenticada como postgres
+→ ApplicationFlow asume crud_admin internamente
+→ generación y administración continúan como crud_admin
+```
+
+Nota: `validate()` ocurre antes del `SET ROLE`, por lo que el mensaje de
+conexión muestra el usuario autenticado (ej. `postgres`), no se afirma que
+muestre `current_user=crud_admin`.
 
 ## Paso 3 — Detección de la extensión (§10.3)
 
@@ -117,8 +151,10 @@ En vivo el docente aporta su tabla: repetir VIR-01..05 con su nombre.
 ## Checklist pre-grabación
 
 - [ ] Base demo fresca (roles+schema+extensión, sin datos de prueba).
-- [ ] `app/` corriendo con flujo Python integrado (pasos 2-6 y 8 desde la CLI,
-  sin `psql` para generar ni para grants).
+- [ ] `app/` corriendo con cuenta `LOGIN` de demo capaz de `SET ROLE
+  crud_admin`; `ApplicationFlow` realiza la asunción del rol administrativo
+  internamente (pasos 2-6 y 8 desde la CLI, sin `psql` para generar ni para
+  grants).
 - [ ] `psql` / `PermissionProbeService` listo para pasos 7 y 9 (ejecución
   efectiva con `CALL` real; la CLI no pide valores CRUD).
 - [ ] Transcript virgen a mano por si piden la tabla desconocida.
