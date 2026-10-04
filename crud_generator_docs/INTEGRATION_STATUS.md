@@ -25,14 +25,14 @@ El estado es compartido: cualquier integrante puede reportar bloqueos o dependen
 - 🔴 No iniciado
 - Fase 0 seguridad distingue además: Diseñado / Implementado / Probado / Integrado.
 
-## Auditoría entregables del enunciado (02-10-2026, post-merge)
+## Auditoría entregables del enunciado (03-10-2026, PR #9 mergeado a `main` como `3d2cf40`)
 
 | Entregable (§10) | Responsable | Estado | Bloqueado por |
 |---|---|---|---|
-| Extensión instalable (`.control`, scripts, fuente) | Joyce | 🟢 Implementada y en `origin/main` (`extension/crud_generator.control`, `extension/sql/crud_generator--1.0.sql`; probada PG16 por Joyce y PG18 por Joseph) | Integración Python |
-| Aplicación Python (código + documentación de uso) | Armando | 🟢 Código funcional e integración E2E validados 03-10-2026 (incluye `app/README.md` agregado en este mismo cambio) | — |
-| VÍDEO de evidencia (10 pasos §10) | Equipo | 🔴 | Tramo Python + demo E2E |
-| Demo en vivo (10 pasos §11 + tabla del docente) | Equipo | 🔴 | Tramo Python + tabla virgen |
+| Extensión instalable (`.control`, scripts, fuente) | Joyce | 🟢 Implementada y en `origin/main` (`extension/crud_generator.control`, `extension/sql/crud_generator--1.0.sql`; probada PG16 por Joyce y PG18 por Joseph) | — |
+| Aplicación Python (código + documentación de uso) | Armando | 🟢 Integrada en `main` vía PR #9 (`feat(python): complete CRUD generation and privilege integration`, merge `3d2cf40` 03-10-2026; incluye `app/README.md`) | — |
+| VÍDEO de evidencia (10 pasos §10) | Equipo | 🔴 | Pendiente de grabación |
+| Demo en vivo (10 pasos §11 + tabla del docente) | Equipo | 🔴 | Pendiente de ensayo/ejecución final |
 
 Pruebas obligatorias (§9): casos 1-2-3 y 3 roles cubiertos por el laboratorio de
 `tests/` con fixtures (CI PASS); validados contra procedures reales en PG18 local
@@ -102,7 +102,7 @@ owner `crud_admin`, `prosecdef=false`, `PUBLIC` sin `EXECUTE`, matriz 3 roles
 
 ## Riesgos actuales
 
-1. **TIEMPO:** entrega confirmada **domingo 4 de octubre de 2026** (ADR-014). Extensión + seguridad/integración + tramo Python en rama; priorizar grabación del vídeo y PR/documentación final.
+1. **TIEMPO:** entrega confirmada **domingo 4 de octubre de 2026** (ADR-014). Extensión + seguridad + Python están integrados en `main` (PR #9, merge `3d2cf40` 03-10-2026). Pendientes no técnicos: ensayo de demo, vídeo y entrega.
 2. ~~Definir firmas/esquema finales de la extensión (CR-JOYCE-002).~~ Resuelto 2026-10-01.
 3. ~~Decidir READ multi-fila / sin PK (CR-JOYCE-003) y policy de procedures existentes (CR-JOYCE-004).~~ Resuelto 2026-10-01.
 4. ~~Cerrar voto ADR-011 (INVOKER) + confirmar owner/cláusula que emitirá la extensión (CR-JOYCE-005).~~ Resuelto 2026-10-01.
@@ -134,4 +134,5 @@ owner `crud_admin`, `prosecdef=false`, `PUBLIC` sin `EXECUTE`, matriz 3 roles
 5. ~~Joseph: MAT/NEG contra reales~~ Hecho 02-10 PG18 (MAT 7/7, MAT-C 9/9, T2R 11/11,
    T6R 19/19, T3 40/40, T4, T5, discovery 18/0/18/0, NEG-06R en `13_conflict_real_matrix.sql`).
 6. ~~Probar tabla_virgen~~ Hecho one-shot 02-10 PG18 (VIR-00..06 OK, restaurada a limpio).
-7. Documentación/PR final (incluye `app/README.md` de este cambio), grabar vídeo de evidencia y demo en vivo (guion en `VIDEO_DEMO_PLAN.md`, actualizado al flujo Python integrado) antes del 2026-10-04. Merge final pendiente.
+7. ~~Documentación Python, PR final Armando y merge a main~~ Hecho 03-10-2026 (PR #9 → `main`, merge commit `3d2cf40`).
+8. Pendientes reales: ensayo final de demo, grabación del vídeo, demo en vivo / tabla del docente, entrega.
