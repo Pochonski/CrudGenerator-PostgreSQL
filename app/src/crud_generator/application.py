@@ -287,8 +287,10 @@ class ApplicationFlow:
                     if sqlstate == "42501":
                         denied, detail = True, "denegado (42501)."
                     else:
+                        # Solo el SQLSTATE: el mensaje completo (DETAIL,
+                        # CONTEXT) ensucia la pantalla y no aporta al veredicto.
                         denied = False
-                        detail = f"no denegado (error {sqlstate}: {exc})."
+                        detail = f"no denegado (error {sqlstate})."
                     outcomes.append(
                         VerifyOutcome(
                             role=role.name,

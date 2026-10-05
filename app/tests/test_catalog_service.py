@@ -238,6 +238,17 @@ def test_list_roles_query_has_no_hardcoded_names(
     assert params is None
 
 
+def test_list_roles_excludes_system_prefix(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    service, fake = make_service(monkeypatch, (("alguien", True, False),))
+    service.list_roles()
+
+    (query, params) = fake.queries[0]
+    assert "pg\\_%" in query
+    assert params is None
+
+
 def test_catalog_error_is_mapped_not_silenced(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:

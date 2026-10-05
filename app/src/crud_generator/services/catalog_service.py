@@ -34,10 +34,13 @@ _LIST_TABLES_QUERY = (
     "ORDER BY c.relname"
 )
 
-#: pg_roles es legible por cualquier rol; sin filtrar nombres concretos.
+#: pg_roles es legible por cualquier rol; se excluyen por patrón genérico los
+#: roles predefinidos del sistema (pg_*), nunca asignables a negocio, sin
+#: hardcodear nombres concretos del proyecto.
 _LIST_ROLES_QUERY = (
     "SELECT rolname, rolcanlogin, rolsuper "
     "FROM pg_catalog.pg_roles "
+    "WHERE rolname NOT LIKE 'pg\\_%' "
     "ORDER BY rolname"
 )
 
