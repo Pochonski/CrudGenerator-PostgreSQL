@@ -1,4 +1,4 @@
-FASE 1 - MODO FIXTURES - PG18 local - 2026-10-02
+FASE 1 - MODO FIXTURES - PG18 local - 2026-10-02 (CREATE EXTENSION crud_generator 1.0)
 
 ==> tests/fixtures/01_roles.sql
 
@@ -17,32 +17,18 @@ psql:tests/fixtures/03_security_fixtures.sql:13: NOTICE:  el procedimiento lab.p
 psql:tests/fixtures/03_security_fixtures.sql:14: NOTICE:  el procedimiento lab.producto_eliminar(pg_catalog.int4) no existe, omitiendo
 
 ==> tests/fixtures/04_grants.sql
-REVOKE
-REVOKE
-REVOKE
-REVOKE
-REVOKE
-REVOKE
 
 ==> tests/fixtures/06_composite_pk_fixtures.sql
 psql:tests/fixtures/06_composite_pk_fixtures.sql:14: NOTICE:  el procedimiento lab.detalle_factura_insertar(pg_catalog.int4,pg_catalog.int4,pg_catalog.int4) no existe, omitiendo
 psql:tests/fixtures/06_composite_pk_fixtures.sql:15: NOTICE:  el procedimiento lab.detalle_factura_consultar(pg_catalog.int4,pg_catalog.int4,pg_catalog.int4) no existe, omitiendo
 psql:tests/fixtures/06_composite_pk_fixtures.sql:16: NOTICE:  el procedimiento lab.detalle_factura_actualizar(pg_catalog.int4,pg_catalog.int4,pg_catalog.int4) no existe, omitiendo
 psql:tests/fixtures/06_composite_pk_fixtures.sql:17: NOTICE:  el procedimiento lab.detalle_factura_eliminar(pg_catalog.int4,pg_catalog.int4) no existe, omitiendo
-REVOKE
-REVOKE
-REVOKE
-REVOKE
 
 ==> tests/fixtures/07_ticket_fixtures.sql
 psql:tests/fixtures/07_ticket_fixtures.sql:22: NOTICE:  el procedimiento lab.ticket_insertar(pg_catalog.int4,text,timestamptz) no existe, omitiendo
 psql:tests/fixtures/07_ticket_fixtures.sql:23: NOTICE:  el procedimiento lab.ticket_consultar(pg_catalog.int4,text,timestamptz) no existe, omitiendo
 psql:tests/fixtures/07_ticket_fixtures.sql:24: NOTICE:  el procedimiento lab.ticket_actualizar(pg_catalog.int4,text) no existe, omitiendo
 psql:tests/fixtures/07_ticket_fixtures.sql:25: NOTICE:  el procedimiento lab.ticket_eliminar(pg_catalog.int4) no existe, omitiendo
-REVOKE
-REVOKE
-REVOKE
-REVOKE
 
 ==> tests/fixtures/08_special_nopk_fixtures.sql
 psql:tests/fixtures/08_special_nopk_fixtures.sql:27: NOTICE:  el procedimiento lab.catalogo_especial_insertar(pg_catalog.int4,text,pg_catalog.numeric,pg_catalog.bool,jsonb,date) no existe, omitiendo
@@ -51,12 +37,6 @@ psql:tests/fixtures/08_special_nopk_fixtures.sql:29: NOTICE:  el procedimiento l
 psql:tests/fixtures/08_special_nopk_fixtures.sql:30: NOTICE:  el procedimiento lab.catalogo_especial_eliminar(pg_catalog.int4) no existe, omitiendo
 psql:tests/fixtures/08_special_nopk_fixtures.sql:31: NOTICE:  el procedimiento lab.bitacora_insertar(pg_catalog.int4,text) no existe, omitiendo
 psql:tests/fixtures/08_special_nopk_fixtures.sql:32: NOTICE:  el procedimiento lab.bitacora_contar(pg_catalog.int4,pg_catalog.int4) no existe, omitiendo
-REVOKE
-REVOKE
-REVOKE
-REVOKE
-REVOKE
-REVOKE
 
 ==> tests/security/01_matrix.sql
 psql:tests/security/01_matrix.sql:15: NOTICE:  MAT-01 OK: vendedor INSERT permitido funciona
@@ -80,7 +60,7 @@ psql:tests/security/04_composite_matrix.sql:211: NOTICE:  MAT-C9 OK: fila inexis
 
 ==> tests/security/07_ticket_matrix.sql
 psql:tests/security/07_ticket_matrix.sql:37: NOTICE:  TIX-00 OK: id_ticket GENERATED ALWAYS + DEFAULTs en codigo/creado_en
-psql:tests/security/07_ticket_matrix.sql:61: NOTICE:  MAT-T1 OK: vendedor INSERT id_generado=2 creado_en=2026-10-02 14:09:32.561078-06
+psql:tests/security/07_ticket_matrix.sql:61: NOTICE:  MAT-T1 OK: vendedor INSERT id_generado=2 creado_en=2026-10-04 18:15:05.754014-06
 psql:tests/security/07_ticket_matrix.sql:82: NOTICE:  MAT-T2 OK: vendedor READ devuelve codigo=TIX-T2 (id=3)
 psql:tests/security/07_ticket_matrix.sql:98: NOTICE:  MAT-T3 OK: vendedor UPDATE rechazado con 42501
 psql:tests/security/07_ticket_matrix.sql:114: NOTICE:  MAT-T4 OK: vendedor DELETE rechazado con 42501
@@ -115,24 +95,22 @@ psql:tests/security/09_special_nopk_matrix.sql:265: NOTICE:  N-P1 OK: sin actual
 psql:tests/security/09_special_nopk_matrix.sql:278: NOTICE:  N-P2 OK: sin eliminar por fila hasta decisi+¦n CR-JOYCE-003 (42883)
 psql:tests/security/09_special_nopk_matrix.sql:295: NOTICE:  N-P3 OK: NOT NULL impone 23502 (capa constraint, no permiso)
 psql:tests/security/09_special_nopk_matrix.sql:312: NOTICE:  N-P4 OK: fila inexistente reporta P0002
+psql:tests/security/09_special_nopk_matrix.sql:364: NOTICE:  S-AUD OK: lab.catalogo_especial_consultar(integer,text,numeric,boolean,jsonb,date) conforme
 psql:tests/security/09_special_nopk_matrix.sql:364: NOTICE:  S-AUD OK: lab.catalogo_especial_eliminar(integer) conforme
+psql:tests/security/09_special_nopk_matrix.sql:364: NOTICE:  S-AUD OK: lab.bitacora_insertar(integer,text) conforme
 psql:tests/security/09_special_nopk_matrix.sql:364: NOTICE:  S-AUD OK: lab.bitacora_contar(integer,integer) conforme
 psql:tests/security/09_special_nopk_matrix.sql:364: NOTICE:  S-AUD OK: lab.catalogo_especial_insertar(integer,text,numeric,boolean,jsonb,date) conforme
-psql:tests/security/09_special_nopk_matrix.sql:364: NOTICE:  S-AUD OK: lab.catalogo_especial_consultar(integer,text,numeric,boolean,jsonb,date) conforme
 psql:tests/security/09_special_nopk_matrix.sql:364: NOTICE:  S-AUD OK: lab.catalogo_especial_actualizar(integer,text,numeric,boolean,jsonb,date) conforme
-psql:tests/security/09_special_nopk_matrix.sql:364: NOTICE:  S-AUD OK: lab.bitacora_insertar(integer,text) conforme
 psql:tests/security/09_special_nopk_matrix.sql:364: NOTICE:  S-AUD RESULTADO: 6/6 conformes
 
 ==> tests/security/02_invoker_vs_definer.sql
 psql:tests/security/02_invoker_vs_definer.sql:9: NOTICE:  el procedimiento lab.exp_invoker_insert(pg_catalog.int4,text,pg_catalog.numeric) no existe, omitiendo
 psql:tests/security/02_invoker_vs_definer.sql:10: NOTICE:  el procedimiento lab.exp_definer_insert(pg_catalog.int4,text,pg_catalog.numeric) no existe, omitiendo
-REVOKE
 psql:tests/security/02_invoker_vs_definer.sql:37: NOTICE:  EXP-01 OK: INVOKER bloquea sin permiso de tabla (42501)
 psql:tests/security/02_invoker_vs_definer.sql:47: NOTICE:  EXP-02: DEFINER permiti+¦ sin permiso de tabla (elevaci+¦n v+¡a owner)
 
 ==> tests/security/03_negative.sql
 psql:tests/security/03_negative.sql:17: NOTICE:  NEG-01 OK: 42501 sin EXECUTE
-REVOKE
 psql:tests/security/03_negative.sql:33: NOTICE:  NEG-02 OK: 42501 sin USAGE
 psql:tests/security/03_negative.sql:47: NOTICE:  NEG-03 OK: 42883 rutina inexistente
 psql:tests/security/03_negative.sql:59: NOTICE:  NEG-04 OK: 42P01 tabla inexistente
@@ -205,7 +183,6 @@ psql:tests/security/06_revoke_public_audit.sql:61: NOTICE:  PUB-01 RESULTADO: 8/
 psql:tests/security/06_revoke_public_audit.sql:115: NOTICE:  PUB-02 RESULTADO: 24/24 celdas EXECUTE exactas
 psql:tests/security/06_revoke_public_audit.sql:135: NOTICE:  REV-01 OK paso 1: EXECUTE inicial presente (ACL)
 psql:tests/security/06_revoke_public_audit.sql:143: NOTICE:  REV-01 OK paso 1b: CALL inicial funciona (comportamiento)
-REVOKE
 psql:tests/security/06_revoke_public_audit.sql:169: NOTICE:  REV-01 OK paso 2: EXECUTE desaparece tras REVOKE (ACL)
 psql:tests/security/06_revoke_public_audit.sql:169: NOTICE:  REV-01 OK paso 2b: PUBLIC sigue sin EXECUTE
 psql:tests/security/06_revoke_public_audit.sql:179: NOTICE:  REV-01 OK paso 2c: CALL rechazado con 42501 real tras REVOKE
@@ -213,7 +190,6 @@ psql:tests/security/06_revoke_public_audit.sql:209: NOTICE:  REV-01 OK paso 3: p
 psql:tests/security/06_revoke_public_audit.sql:226: NOTICE:  REV-01 OK paso 3b: CALL vuelve a funcionar tras GRANT
 psql:tests/security/06_revoke_public_audit.sql:237: NOTICE:  el procedimiento lab.pub_leak_decoy(pg_catalog.int4) no existe, omitiendo
 psql:tests/security/06_revoke_public_audit.sql:263: NOTICE:  PUB-03 OK-detecci+¦n: fuga PUBLIC en se+¦uelo detectada como FAIL esperado
-REVOKE
 psql:tests/security/06_revoke_public_audit.sql:279: NOTICE:  PUB-03 OK-correcci+¦n: tras REVOKE, PUBLIC sin EXECUTE
 psql:tests/security/06_revoke_public_audit.sql:291: NOTICE:  PUB-03 OK-limpieza: se+¦uelo eliminado, sin basura
 
@@ -223,10 +199,6 @@ psql:tests/security/08_dynamic_sql_audit.sql:18: NOTICE:  el procedimiento lab.d
 psql:tests/security/08_dynamic_sql_audit.sql:19: NOTICE:  el procedimiento lab.dyn_safe_count(text,pg_catalog.int4) no existe, omitiendo
 psql:tests/security/08_dynamic_sql_audit.sql:20: NOTICE:  el procedimiento lab.dyn_safe_insert(pg_catalog.int4,text) no existe, omitiendo
 psql:tests/security/08_dynamic_sql_audit.sql:21: NOTICE:  la tabla -½dyn_probe-+ no existe, omitiendo
-REVOKE
-REVOKE
-REVOKE
-REVOKE
 psql:tests/security/08_dynamic_sql_audit.sql:104: NOTICE:  DYN-00 RESULTADO: 4/4 procedures de prueba conformes
 psql:tests/security/08_dynamic_sql_audit.sql:149: NOTICE:  DYN-01 RESULTADO: 8/8 valores hostiles guardados como datos exactos
 psql:tests/security/08_dynamic_sql_audit.sql:194: NOTICE:  DYN-02 OK: ident v+ílido dyn_probe cuenta 8
@@ -241,32 +213,13 @@ psql:tests/security/08_dynamic_sql_audit.sql:285: NOTICE:  DYN-05 OK: USING cuen
 psql:tests/security/08_dynamic_sql_audit.sql:309: NOTICE:  DYN-LIMPIEZA OK: cero residuos (ni se+¦uelo ni sonda ni seguros)
 
 ==> tests/security/10_generated_routine_discovery.sql
-lab         | bitacora_contar              | lab.bitacora_contar(integer,integer)                                      | crud_admin | INVOKER  | search_path=lab, pg_temp | IN p_id_sesion integer, INOUT p_n integer                                                                                     |             | f
-lab         | bitacora_insertar            | lab.bitacora_insertar(integer,text)                                       | crud_admin | INVOKER  | search_path=lab, pg_temp | IN p_id_sesion integer, IN p_mensaje text                                                                                     |             | f
-lab         | catalogo_especial_actualizar | lab.catalogo_especial_actualizar(integer,text,numeric,boolean,jsonb,date) | crud_admin | INVOKER  | search_path=lab, pg_temp | IN p_id integer, IN p_nombre text, IN p_precio numeric, IN p_activo boolean, IN p_datos jsonb, IN p_fecha date                |             | f
-lab         | catalogo_especial_consultar  | lab.catalogo_especial_consultar(integer,text,numeric,boolean,jsonb,date)  | crud_admin | INVOKER  | search_path=lab, pg_temp | IN p_id integer, INOUT p_nombre text, INOUT p_precio numeric, INOUT p_activo boolean, INOUT p_datos jsonb, INOUT p_fecha date |             | f
-lab         | catalogo_especial_eliminar   | lab.catalogo_especial_eliminar(integer)                                   | crud_admin | INVOKER  | search_path=lab, pg_temp | IN p_id integer                                                                                                               |             | f
-lab         | catalogo_especial_insertar   | lab.catalogo_especial_insertar(integer,text,numeric,boolean,jsonb,date)   | crud_admin | INVOKER  | search_path=lab, pg_temp | INOUT p_id integer, IN p_nombre text, IN p_precio numeric, IN p_activo boolean, IN p_datos jsonb, IN p_fecha date             |             | f
-lab         | detalle_factura_actualizar   | lab.detalle_factura_actualizar(integer,integer,integer)                   | crud_admin | INVOKER  | search_path=lab, pg_temp | IN p_id_factura integer, IN p_id_producto integer, IN p_cantidad integer                                                      |             | f
-lab         | detalle_factura_consultar    | lab.detalle_factura_consultar(integer,integer,integer)                    | crud_admin | INVOKER  | search_path=lab, pg_temp | IN p_id_factura integer, IN p_id_producto integer, INOUT p_cantidad integer                                                   |             | f
-lab         | detalle_factura_eliminar     | lab.detalle_factura_eliminar(integer,integer)                             | crud_admin | INVOKER  | search_path=lab, pg_temp | IN p_id_factura integer, IN p_id_producto integer                                                                             |             | f
-lab         | detalle_factura_insertar     | lab.detalle_factura_insertar(integer,integer,integer)                     | crud_admin | INVOKER  | search_path=lab, pg_temp | IN p_id_factura integer, IN p_id_producto integer, IN p_cantidad integer                                                      |             | f
-lab         | producto_actualizar          | lab.producto_actualizar(integer,text,numeric)                             | crud_admin | INVOKER  | search_path=lab, pg_temp | IN p_id integer, IN p_nombre text, IN p_precio numeric                                                                        |             | f
-lab         | producto_consultar           | lab.producto_consultar(integer,text,numeric)                              | crud_admin | INVOKER  | search_path=lab, pg_temp | IN p_id integer, INOUT p_nombre text, INOUT p_precio numeric                                                                  |             | f
-lab         | producto_eliminar            | lab.producto_eliminar(integer)                                            | crud_admin | INVOKER  | search_path=lab, pg_temp | IN p_id integer                                                                                                               |             | f
-lab         | producto_insertar            | lab.producto_insertar(integer,text,numeric)                               | crud_admin | INVOKER  | search_path=lab, pg_temp | IN p_id integer, IN p_nombre text, IN p_precio numeric                                                                        |             | f
-lab         | ticket_actualizar            | lab.ticket_actualizar(integer,text)                                       | crud_admin | INVOKER  | search_path=lab, pg_temp | IN p_id_ticket integer, IN p_codigo text                                                                                      |             | f
-lab         | ticket_consultar             | lab.ticket_consultar(integer,text,timestamp with time zone)               | crud_admin | INVOKER  | search_path=lab, pg_temp | IN p_id_ticket integer, INOUT p_codigo text, INOUT p_creado_en timestamp with time zone                                       |             | f
-lab         | ticket_eliminar              | lab.ticket_eliminar(integer)                                              | crud_admin | INVOKER  | search_path=lab, pg_temp | IN p_id_ticket integer                                                                                                        |             | f
-lab         | ticket_insertar              | lab.ticket_insertar(integer,text,timestamp with time zone)                | crud_admin | INVOKER  | search_path=lab, pg_temp | INOUT p_id_ticket integer, IN p_codigo text, INOUT p_creado_en timestamp with time zone                                       |             | f
-discovered_procedures | security_definer | security_invoker | public_execute_leaks
 
 ==> tests/integration/01_checklist.sql
-psql:tests/integration/01_checklist.sql:13: NOTICE:  INT-01 PENDIENTE: extensi+¦n no instalada en esta base (instalar seg+¦n extension/README.md)
+psql:tests/integration/01_checklist.sql:13: NOTICE:  INT-01 OK: extensi+¦n crud_generator instalada
 psql:tests/integration/01_checklist.sql:22: NOTICE:  INT-02 OK: fixtures lab.producto_* presentes
 psql:tests/integration/01_checklist.sql:58: NOTICE:  INT-07 OK: fixtures lab.detalle_factura_* presentes
-psql:tests/integration/01_checklist.sql:125: NOTICE:  INT-12 OK: fixtures lab.ticket_* presentes
-psql:tests/integration/01_checklist.sql:150: NOTICE:  INT-15 OK: fixtures T6 presentes (4 especiales + 2 sin PK)
+psql:tests/integration/01_checklist.sql:126: NOTICE:  INT-12 OK: lab.ticket_* presentes (fixtures o reales)
+psql:tests/integration/01_checklist.sql:167: NOTICE:  INT-15 OK: T6 presentes (4 especiales + bitacora insertar+lectura)
 
 ==> tests/integration/02_demo_script.sql
 psql:tests/integration/02_demo_script.sql:9: NOTICE:  DEMO-01: verificar extensi+¦n crud_generator (contrato cerrado CONTRACTS.md -º3)
@@ -276,3 +229,5 @@ psql:tests/integration/02_demo_script.sql:30: NOTICE:  DEMO-04 OK autorizado: ve
 psql:tests/integration/02_demo_script.sql:41: NOTICE:  DEMO-05 OK no autorizado: 42501 delante del profesor
 psql:tests/integration/02_demo_script.sql:51: NOTICE:  DEMO-06 OK: administrador DELETE cierra el ciclo
 psql:tests/integration/02_demo_script.sql:61: NOTICE:  DEMO-07 RESERVADO: tabla_virgen intacta, no tocar hasta demo final
+discovery-fixtures: 18 descubiertas, 0 DEFINER, 18 INVOKER, 0 fugas PUBLIC
+RESUMEN FASE 1: 0 FAIL/FALLO inesperados (ver detalle arriba)

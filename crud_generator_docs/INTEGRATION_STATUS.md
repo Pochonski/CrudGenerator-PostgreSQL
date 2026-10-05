@@ -100,6 +100,21 @@ owner `crud_admin`, `prosecdef=false`, `PUBLIC` sin `EXECUTE`, matriz 3 roles
 42501`, PK compuesta, generated, `42P01` tabla inexistente,
 `lab.tabla_virgen` 0 filas / 0 rutinas antes y después.
 
+## Validación independiente Joseph (PG18 local, `CREATE EXTENSION` real)
+
+- Ensayo general en 2 fases desde base cero con transcripts en
+  `tests/evidence/fase1_fixtures.log` (19 archivos, 0 fallos) y
+  `tests/evidence/fase2_reales.log` (155 OK, 0 fallos): fixtures + reales
+  (generate ×5, grants reales, 01/04c/11/12/13, auditorías, demo).
+- `pytest app/tests`: 280 unitarios OK + 5 integración OK (`CRUDGEN_TEST_POSTGRES=1`
+  contra PG18); Ruff limpio. Nota: `test_real_flow_lab_producto` exige extensión
+  registrada en `pg_extension` (verifica el 4-estados §4.2: con install por `\i`
+  reporta correctamente `NOT_INSTALLED`).
+- Auditoría de código PRs #9/#10 (contratos + ADR-013): mapeo `analyze`/`generate`
+  exacto, 0 f-strings a SQL (todo `Identifier`/`%s`), dos llaves INVOKER, probe con
+  `CALL` real + `SET LOCAL ROLE`, sin lógica CRUD en Python. Hallazgos menores
+  para Armando en `COORDINATION_REQUESTS.md` (CR-ARMANDO-004..006).
+
 ## Riesgos actuales
 
 1. **TIEMPO:** entrega confirmada **domingo 4 de octubre de 2026** (ADR-014). Extensión + seguridad + Python están integrados en `main` (PR #9, merge `3d2cf40` 03-10-2026). Pendientes no técnicos: ensayo de demo, vídeo y entrega.

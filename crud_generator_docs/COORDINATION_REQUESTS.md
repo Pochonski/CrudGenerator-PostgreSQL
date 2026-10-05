@@ -175,6 +175,36 @@ Por qué afecta nuestra área:
   profesor. Nuestro `tests/integration/02_demo_script.sql` es la referencia del
   flujo esperado; Python debe poder reproducirlo.
 
+### CR-ARMANDO-004 — `operations` vacío: Python lanza, la extensión devuelve fila
+Estado: **REQUIERE COORDINACIÓN** (menor, no bloquea; auditoría Joseph PG18)
+
+Contexto: `CONTRACTS.md` §3.3 + extensión (`8f3ebc3`) devuelven fila
+`validation_error` con `operation NULL` ante `operations` vacío/nulo. Python en
+cambio lo impide antes (`_validate_operations` → `ValueError`, sin queries) y
+`_map_generation_row` rechazaría una fila con `operation NULL`. El caso op
+inválida (`MERGE`) sí se mapea bien, pero es inalcanzable vía API normal
+(validación previa). Propuesta: o Python deja pasar el vacío y mapea la fila
+`NULL/validation_error`, o se documenta que Python es deliberadamente más
+estricto que el contrato (defensa en cliente). Decisión de Armando.
+
+### CR-ARMANDO-005 — Clasificación fina de errores CONTRACTS §5
+Estado: **REQUIERE COORDINACIÓN** (menor; nada se oculta, SQLSTATE se preserva)
+
+`42P01`/`P0002` caen en `UnexpectedDatabaseError` y la CLI los muestra como
+"Error inesperado". Propuesta: distinguir objeto/generación/fila-no-encontrada
+en `describe_error` para la demo. Decisión de Armando.
+
+### CR-ARMANDO-006 — `USAGE ON SCHEMA` nunca se revoca
+Estado: **REQUIERE COORDINACIÓN** (menor; residual inocuo sin EXECUTE/tabla)
+
+`PrivilegeService` otorga `USAGE` si `allowed_any` pero no lo revoca ante
+denegación total. Propuesta: `REVOKE USAGE` cuando el rol queda sin nada, o
+documentarlo como intencional. Decisión de Armando.
+
+Nota probe: `PermissionProbeService` prueba autorización de READ-sin-PK sin hacer
+`FETCH` del `refcursor` (correcto como probe; el `FETCH` intra-transacción de
+`CONTRACTS.md` §3.2 se prueba en `12_special_real_matrix.sql` MAT-B1R..B3R).
+
 ---
 
 ## Guía completa de integración
