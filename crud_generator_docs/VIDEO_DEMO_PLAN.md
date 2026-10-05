@@ -10,6 +10,7 @@ vivo. Reemplaza a los guiones de grabación anteriores (`GUION_JOSEPH_VIDEO.md`,
 | Qué | Dónde |
 |---|---|
 | Video final (Entregable 3) | `video_entrega/CrudGenerator_PostgreSQL_voz.mp4` — 1920×1080, 30 fps, H.264 + AAC, ≈5:20, narrado en español |
+| Publicado | [Google Drive](https://drive.google.com/file/d/1ayWbXwKmtkWVvdcDym3T4v7qqBPLVmnF/view?usp=sharing) |
 | Proyecto que lo genera | `video_entrega/remotion/` (Remotion 4.0.532, React + TypeScript) |
 | Reset del laboratorio | `crud_generator_docs/reset_video_windows.ps1` |
 

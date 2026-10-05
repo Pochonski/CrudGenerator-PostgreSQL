@@ -15,6 +15,8 @@ cumplir.
 
 **Repositorio:** <https://github.com/Pochonski/CrudGenerator-PostgreSQL>
 
+**Video de evidencia:** [ver en Google Drive](https://drive.google.com/file/d/1ayWbXwKmtkWVvdcDym3T4v7qqBPLVmnF/view?usp=sharing)
+
 ```bash
 git clone https://github.com/Pochonski/CrudGenerator-PostgreSQL.git
 ```
@@ -206,11 +208,13 @@ video_entrega/remotion/ Proyecto Remotion que genera el video de evidencia
 
 ## Video de evidencia
 
+▶ **[Ver el video en Google Drive](https://drive.google.com/file/d/1ayWbXwKmtkWVvdcDym3T4v7qqBPLVmnF/view?usp=sharing)**
+
 El video (≈5:30, narrado) recorre los 10 puntos de evidencia del enunciado
 con salidas reales de una corrida en PostgreSQL 18: instalación, conexión,
 detección, selección, generación, ejecución, privilegios, validación por rol y
 una tabla nueva. Se genera con Remotion desde `video_entrega/remotion/` y el
-MP4 se entrega aparte (no se versiona). Cómo se produjo y cómo regenerarlo:
+MP4 no se versiona: se publica en el enlace de arriba. Cómo se produjo y cómo regenerarlo:
 [`crud_generator_docs/VIDEO_DEMO_PLAN.md`](crud_generator_docs/VIDEO_DEMO_PLAN.md).
 
 ## Equipo
