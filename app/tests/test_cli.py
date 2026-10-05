@@ -358,3 +358,140 @@ def test_show_privilege_changes_lists_roles() -> None:
 
     text = "\n".join(io.outputs)
     assert "ana" in text and "INSERT" in text and "habilitado" in text
+
+def test_ask_verify_defaults_to_yes() -> None:
+    assert make_cli(ScriptedIO(["s"])).ask_verify() is True
+    assert make_cli(ScriptedIO(["n"])).ask_verify() is False
+    assert make_cli(ScriptedIO([""])).ask_verify() is True
+
+
+def test_ask_verify_retries_invalid() -> None:
+    io = ScriptedIO(["x", "n"])
+    cli = make_cli(io)
+
+    assert cli.ask_verify() is False
+    assert sum("inválida" in out for out in io.outputs) == 1
+
+
+def test_ask_execute_defaults_to_no() -> None:
+    assert make_cli(ScriptedIO(["s"])).ask_execute() is True
+    assert make_cli(ScriptedIO(["n"])).ask_execute() is False
+    assert make_cli(ScriptedIO([""])).ask_execute() is False
+
+
+def test_select_success_operation_skips_non_success() -> None:
+    from crud_generator.models import GenerationResult, GenerationStatus
+
+    ok = GenerationResult(
+        operation=CrudOperation.INSERT,
+        status=GenerationStatus.SUCCESS,
+        schema_name="lab",
+        routine_name="t_insertar",
+        identity_arguments="IN p_1 integer",
+        message="ok",
+        sqlstate=None,
+    )
+    na = GenerationResult(
+        operation=CrudOperation.UPDATE,
+        status=GenerationStatus.NOT_APPLICABLE,
+        schema_name="lab",
+        routine_name=None,
+        identity_arguments=None,
+        message="sin PK",
+        sqlstate=None,
+    )
+    cli = make_cli(ScriptedIO(["1"]))
+
+    assert cli.select_success_operation([na, ok]) is ok
+
+
+def test_select_success_operation_without_success_raises() -> None:
+    import pytest
+
+    from crud_generator.models import GenerationResult, GenerationStatus
+
+    na = GenerationResult(
+        operation=None,
+        status=GenerationStatus.VALIDATION_ERROR,
+        schema_name="lab",
+        routine_name=None,
+        identity_arguments=None,
+        message="vacío",
+        sqlstate=None,
+    )
+    with pytest.raises(ValueError):
+        make_cli(ScriptedIO(["1"])).select_success_operation([na])
+
+
+def test_ask_call_values_empty_is_null() -> None:
+    cli = make_cli(ScriptedIO(["Teclado", "", "25.50"]))
+
+    assert cli.ask_call_values(
+        ["IN p_1 text", "IN p_2 text", "IN p_3 numeric"]
+    ) == [
+        "Teclado",
+        None,
+        "25.50",
+    ]
+
+
+def test_show_verify_results_marks_mismatch() -> None:
+    from crud_generator.models import VerifyOutcome
+
+    io = ScriptedIO([])
+    cli = make_cli(io)
+    cli.show_verify_results(
+        [
+            VerifyOutcome(
+                role="ana",
+                operation=CrudOperation.READ,
+                expected_allowed=True,
+                matched=True,
+                detail="permitido y ejecutado.",
+            ),
+            VerifyOutcome(
+                role="ana",
+                operation=CrudOperation.DELETE,
+                expected_allowed=False,
+                matched=False,
+                detail="no denegado (error 23502).",
+            ),
+        ]
+    )
+    text = "\n".join(io.outputs)
+    assert "OK ana READ" in text
+    assert "DISCREPANCIA ana DELETE" in text
+
+
+def test_show_call_result_table_caps_rows() -> None:
+    from crud_generator.models import CallResult
+
+    io = ScriptedIO([])
+    cli = make_cli(io)
+    cli.show_call_result(
+        CallResult(
+            schema_name="lab",
+            routine_name="b_consultar",
+            rows=tuple((i,) for i in range(25)),
+            is_table=True,
+        ),
+        max_rows=20,
+    )
+    text = "\n".join(io.outputs)
+    assert "filas devueltas: 25" in text
+    assert "5 más" in text
+
+
+def test_show_call_result_output_row() -> None:
+    from crud_generator.models import CallResult
+
+    io = ScriptedIO([])
+    cli = make_cli(io)
+    cli.show_call_result(
+        CallResult(
+            schema_name="lab",
+            routine_name="p_consultar",
+            output=(101, "Teclado"),
+        )
+    )
+    assert "valores de retorno" in "\n".join(io.outputs)

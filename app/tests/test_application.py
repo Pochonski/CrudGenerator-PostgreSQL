@@ -10,6 +10,7 @@ from crud_generator.application import EXIT_OK, EXIT_STOPPED, ApplicationFlow
 from crud_generator.config import DatabaseConfig
 from crud_generator.db import ConnectionInfo, ServerUnavailableError
 from crud_generator.models import (
+    CallResult,
     ColumnMetadata,
     CrudOperation,
     ExtensionState,
@@ -21,6 +22,10 @@ from crud_generator.models import (
     TableInfo,
 )
 from crud_generator.privileges.matrix import PrivilegeMatrix
+from crud_generator.privileges.probe import (
+    PermissionProbeResult,
+    PermissionProbeStatus,
+)
 from crud_generator.privileges.service import PrivilegeChange
 from crud_generator.ui.cli import Cli
 
@@ -268,6 +273,76 @@ class FakePrivilegeService:
         )
 
 
+class FakeProbe:
+    """Probe falso: denied configurables por (rol, operación), resto ALLOWED."""
+
+    def __init__(
+        self,
+        manager: FakeManager,
+        *,
+        denied: set[tuple[str, CrudOperation | None]] | None = None,
+    ) -> None:
+        self.calls: list[tuple[str, GenerationResult, tuple[Any, ...]]] = []
+        self._denied = set(denied or set())
+
+    def probe(
+        self,
+        role: str,
+        generation_result: GenerationResult,
+        arguments: Any = (),
+    ) -> PermissionProbeResult:
+        args = tuple(arguments)
+        self.calls.append((role, generation_result, args))
+        if (role, generation_result.operation) in self._denied:
+            status = PermissionProbeStatus.DENIED
+        else:
+            status = PermissionProbeStatus.ALLOWED
+        return PermissionProbeResult(
+            role=role,
+            operation=generation_result.operation,
+            schema_name=generation_result.schema_name,
+            routine_name=generation_result.routine_name or "",
+            status=status,
+            output=None,
+            sqlstate="42501" if status is PermissionProbeStatus.DENIED else None,
+            message="denegado" if status is PermissionProbeStatus.DENIED else "ok",
+        )
+
+
+class FakeRunner:
+    """Runner falso: retorna output configurable, registra llamadas."""
+
+    def __init__(
+        self,
+        manager: FakeManager,
+        *,
+        output: tuple[Any, ...] | None = ("fichado",),
+        rows: tuple[tuple[Any, ...], ...] = (),
+        is_table: bool = False,
+    ) -> None:
+        self.calls: list[tuple[str, str, tuple[Any, ...], bool]] = []
+        self._output = output
+        self._rows = rows
+        self._is_table = is_table
+
+    def call_procedure(
+        self,
+        schema_name: str,
+        routine_name: str,
+        values: tuple[Any, ...],
+        *,
+        fetch_cursor: bool = False,
+    ) -> CallResult:
+        self.calls.append((schema_name, routine_name, tuple(values), fetch_cursor))
+        return CallResult(
+            schema_name=schema_name,
+            routine_name=routine_name,
+            output=self._output,
+            rows=self._rows,
+            is_table=self._is_table,
+        )
+
+
 def installed_status() -> ExtensionStatus:
     return ExtensionStatus(
         name="crud_generator",
@@ -289,6 +364,8 @@ def make_flow(
     roles: list[RoleInfo] | None = None,
     extension: FakeExtension | None = None,
     privilege_service: FakePrivilegeService | None = None,
+    probe: FakeProbe | None = None,
+    runner: FakeRunner | None = None,
 ) -> tuple[ApplicationFlow, FakeExtension, FakePrivilegeService]:
     cli = Cli(read=io.read, write=io.write, read_password=io.read_password)
     fake_extension = (
@@ -301,6 +378,8 @@ def make_flow(
         if privilege_service is not None
         else FakePrivilegeService(FakeManager)  # type: ignore[arg-type]
     )
+    fake_probe = probe if probe is not None else FakeProbe(FakeManager)  # type: ignore[arg-type]
+    fake_runner = runner if runner is not None else FakeRunner(FakeManager)  # type: ignore[arg-type]
     managers: list[FakeManager] = []
 
     def _make_manager(config: DatabaseConfig) -> FakeManager:
@@ -318,6 +397,8 @@ def make_flow(
         ),
         make_extension=lambda manager: fake_extension,
         make_privilege_service=lambda manager: fake_privileges,
+        make_probe_service=lambda manager: fake_probe,
+        make_procedure_service=lambda manager: fake_runner,
     )
     flow.managers = managers  # type: ignore[attr-defined]
     return flow, fake_extension, fake_privileges
@@ -335,13 +416,15 @@ def happy_inputs(
     roles: str = "1",
     answers: list[str] | None = None,
     extra_tables: int = 0,
+    verify: str = "n",
+    execute: str = "n",
 ) -> list[str]:
     if answers is None:
         answers = ["s", "s"]
     inputs = [*connection_inputs(), "1", tables, operations, replace]
     for _ in range(extra_tables):
-        inputs += [roles, *answers]
-    return [*inputs, roles, *answers]
+        inputs += [roles, *answers, verify, execute]
+    return [*inputs, roles, *answers, verify, execute]
 
 
 def test_installed_runs_real_flow_to_privileges() -> None:
@@ -437,7 +520,10 @@ def test_metadata_and_success_results_shown() -> None:
 
 
 def test_not_applicable_shown_and_not_asked() -> None:
-    io = ScriptedIO(happy_inputs(operations="a", answers=["s"] * 6), ["pw"])
+    io = ScriptedIO(
+        happy_inputs(operations="a", answers=["s", "s"], verify="n", execute="n"),
+        ["pw"],
+    )
     extension = FakeExtension(
         FakeManager,  # type: ignore[arg-type]
         status=installed_status(),
@@ -782,3 +868,95 @@ def test_cancel_during_operation_selection() -> None:
 
     assert flow.run() == EXIT_STOPPED
     assert "cancelada" in "\n".join(io.outputs)
+
+def _verify_inputs(*, verify: str = "s", execute: str = "n") -> list[str]:
+    return happy_inputs(verify=verify, execute=execute)
+
+
+def test_verify_shows_matched_outcomes() -> None:
+
+    io = ScriptedIO(_verify_inputs(), ["pw"])
+    probe = FakeProbe(FakeManager, denied=set())  # type: ignore[arg-type]
+    flow, _, _ = make_flow(
+        io,
+        installed_status(),
+        schemas=[SchemaInfo("public")],
+        tables=[TableInfo("public", "t1")],
+        probe=probe,
+    )
+
+    assert flow.run() == EXIT_OK
+    text = "\n".join(io.outputs)
+    assert "Verificación de permisos" in text
+    assert "OK ana INSERT" in text
+    assert "OK ana READ" in text
+    # NULLs por parámetro (identity "IN p_1 integer" ? 1 arg).
+    assert all(args == (None,) for _, _, args in probe.calls)
+    assert len(probe.calls) == 2
+
+
+def test_verify_marks_denied_mismatch() -> None:
+    io = ScriptedIO(_verify_inputs(), ["pw"])
+    probe = FakeProbe(  # type: ignore[arg-type]
+        FakeManager, denied={("ana", CrudOperation.READ)}
+    )
+    flow, _, _ = make_flow(
+        io,
+        installed_status(),
+        schemas=[SchemaInfo("public")],
+        tables=[TableInfo("public", "t1")],
+        probe=probe,
+    )
+
+    assert flow.run() == EXIT_OK
+    text = "\n".join(io.outputs)
+    assert "OK ana INSERT" in text
+    assert "DISCREPANCIA ana READ" in text
+
+
+def test_verify_skipped_without_probe_calls() -> None:
+    io = ScriptedIO(_verify_inputs(verify="n"), ["pw"])
+    probe = FakeProbe(FakeManager)  # type: ignore[arg-type]
+    flow, _, _ = make_flow(
+        io,
+        installed_status(),
+        schemas=[SchemaInfo("public")],
+        tables=[TableInfo("public", "t1")],
+        probe=probe,
+    )
+
+    assert flow.run() == EXIT_OK
+    assert probe.calls == []
+    assert "Verificación de permisos" not in "\n".join(io.outputs)
+
+
+def test_execute_runs_operation_with_values() -> None:
+    inputs = happy_inputs(verify="n", execute="s") + ["1", "7"]
+    io = ScriptedIO(inputs, ["pw"])
+    runner = FakeRunner(FakeManager)  # type: ignore[arg-type]
+    flow, _, _ = make_flow(
+        io,
+        installed_status(),
+        schemas=[SchemaInfo("public")],
+        tables=[TableInfo("public", "t1")],
+        runner=runner,
+    )
+
+    assert flow.run() == EXIT_OK
+    assert runner.calls == [("public", "t1_insertar", ("7",), False)]
+    assert "valores de retorno" in "\n".join(io.outputs)
+
+
+def test_execute_skipped_without_runner_calls() -> None:
+    io = ScriptedIO(_verify_inputs(verify="n", execute="n"), ["pw"])
+    runner = FakeRunner(FakeManager)  # type: ignore[arg-type]
+    flow, _, _ = make_flow(
+        io,
+        installed_status(),
+        schemas=[SchemaInfo("public")],
+        tables=[TableInfo("public", "t1")],
+        runner=runner,
+    )
+
+    assert flow.run() == EXIT_OK
+    assert runner.calls == []

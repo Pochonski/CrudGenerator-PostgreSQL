@@ -208,6 +208,22 @@ Nota probe: `PermissionProbeService` prueba autorización de READ-sin-PK sin hac
 `FETCH` del `refcursor` (correcto como probe; el `FETCH` intra-transacción de
 `CONTRACTS.md` §3.2 se prueba en `12_special_real_matrix.sql` MAT-B1R..B3R).
 
+## Cierre demo §11 pasos 9-10 desde la CLI (implementado por Joseph con permiso confirmado)
+
+La CLI no ejecutaba procedures (verificación y operaciones quedaban en `psql`),
+incumpliendo la lectura estricta de "utilizando únicamente la aplicación Python".
+Resolución en `main`:
+- Paso 9 Verificar: tras aplicar la matriz, `ApplicationFlow` ofrece verificar
+  con `PermissionProbeService` (NULLs por parámetro; `42501` = denegado) y
+  compara contra la matriz (`OK`/`DISCREPANCIA`, nunca aborta).
+- Paso 10 Ejecutar: `ProcedureService` (`services/procedure_service.py`) ejecuta
+  `CALL` con valores de texto (vacío = NULL, casteo en PG, `22P02` mostrable),
+  muestra retornos `INOUT` y lista filas del `refcursor` (READ sin PK).
+  Identificadores siempre por `Identifier`, valores por `Placeholder` (ADR-013).
+- Validado: 315 pytest (incl. 5 integración en PG18) + E2E real en PG18
+  (INSERT 902 persistido, refcursor con filas, `22P02` preservado, 0 residuos).
+- `app/README.md` documenta los pasos 21-22 del flujo.
+
 ---
 
 ## Guía completa de integración

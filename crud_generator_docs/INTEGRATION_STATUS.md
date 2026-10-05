@@ -82,8 +82,9 @@ restaurada a limpio (0 rutinas, 0 filas).
   T4 PUB-01 8/8 + PUB-02 24/24 + REV-01 completo, T5 OK, EXP-01/02 OK, demo E2E OK
   (MAT-07/DEMO-04/MAT-C/T4-3b fix variables INOUT, CI fixtures PASS)
 - 🟢 Python → roles/permisos (`apply_matrix` + `USAGE`/`EXECUTE`/tabla verificados por rol)
-- 🟢 Prueba E2E (técnicamente validada 03-10-2026 con tramo Python real;
-  demo `02_demo_script` OK contra reales + virgen one-shot OK + guion en `VIDEO_DEMO_PLAN.md`)
+- 🟢 Prueba E2E (flujo completo validado con tramo Python real + pasos
+  Verificar/Ejecutar en la CLI; demo `02_demo_script` OK contra reales +
+  virgen one-shot OK + guion en `VIDEO_DEMO_PLAN.md`)
 - 🟢 Tabla nueva: prueba técnica Python con `armando_e2e.sorpresa_final` pasó
   sin cambio de código (03-10-2026); `lab.tabla_virgen` sigue preservada para
   demo/docente aunque Joseph ya hizo su one-shot previo (VIR-00..06 OK,

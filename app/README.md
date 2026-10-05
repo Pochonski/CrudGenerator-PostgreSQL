@@ -77,12 +77,21 @@ Orden implementado en `src/crud_generator/application.py` + `ui/cli.py`:
 18. Matriz de permisos (`PrivilegeMatrix`: por cada `SUCCESS` × cada rol se
    pregunta `Permitir <OP>? [s/n]`)
 19. `GRANT`/`REVOKE` directos reales (`PrivilegeService.apply_matrix`, dos
-   llaves INVOKER, atómico por tabla; tablas con `PROCEDURE_CONFLICT` o
-   `VALIDATION_ERROR` excluyen privilegios hasta resolver generación)
+    llaves INVOKER, atómico por tabla; tablas con `PROCEDURE_CONFLICT` o
+    `VALIDATION_ERROR` excluyen privilegios hasta resolver generación)
 20. Resumen de cambios (`show_privilege_changes` por tabla)
+21. Verificación efectiva (`PermissionProbeService`: por cada rol × `SUCCESS`
+    ejecuta el `CALL` real con NULLs; `42501` = denegado, otro desenlace =
+    no denegado; se compara contra la matriz y se marcan `OK`/`DISCREPANCIA`,
+    §11 paso 9)
+22. Ejecución con valores (`ProcedureService`: elige operación `SUCCESS`,
+    pide valores como texto —vacío = NULL, PostgreSQL castea; literal
+    inválido → error mostrable `22P02`— y muestra retornos `INOUT` o filas
+    del `refcursor` en READ sin PK, §11 paso 10)
 
-Aclaración: `PermissionProbeService` existe para validación efectiva y E2E,
-pero NO forma parte del flujo interactivo normal.
+Aclaración: `PermissionProbeService` también se usa fuera del flujo (E2E,
+tests de integración); dentro del flujo solo verifica, nunca persiste
+(`force_rollback`), mientras que el paso 22 sí persiste (commit).
 
 ## Modelo de seguridad
 

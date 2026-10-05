@@ -2,8 +2,9 @@
 
 Responsabilidades: pedir configuración a la UI, validar conexión, verificar
 extensión, obtener esquema/tablas/operaciones, ejecutar análisis y generación
-reales vía la extensión, y aplicar la matriz de privilegios elegida. Se
-detiene de forma limpia ante errores o cancelación del usuario.
+reales vía la extensión, aplicar la matriz de privilegios elegida, verificar
+permisos efectivos (SET ROLE + CALL real) y ejecutar operaciones con valores
+del administrador. Se detiene de forma limpia ante errores o cancelación.
 """
 
 from __future__ import annotations
@@ -13,17 +14,28 @@ from collections.abc import Callable
 from crud_generator.config import DatabaseConfig
 from crud_generator.db.connection import ConnectionManager, DatabaseConnectionError
 from crud_generator.models import (
+    CrudOperation,
     CrudSelection,
     ExtensionState,
     GenerationResult,
     GenerationStatus,
+    RoleInfo,
+    VerifyOutcome,
 )
 from crud_generator.privileges.matrix import PrivilegeMatrix
+from crud_generator.privileges.probe import (
+    PermissionProbeService,
+    PermissionProbeStatus,
+)
 from crud_generator.privileges.service import PrivilegeService
 from crud_generator.services.catalog_service import CatalogService
 from crud_generator.services.extension_service import (
     DEFAULT_EXTENSION_NAME,
     ExtensionService,
+)
+from crud_generator.services.procedure_service import (
+    ProcedureService,
+    split_identity_arguments,
 )
 from crud_generator.ui.cli import Cli
 
@@ -46,6 +58,12 @@ class ApplicationFlow:
         make_privilege_service: Callable[
             [ConnectionManager], PrivilegeService
         ] = PrivilegeService,
+        make_probe_service: Callable[
+            [ConnectionManager], PermissionProbeService
+        ] = PermissionProbeService,
+        make_procedure_service: Callable[
+            [ConnectionManager], ProcedureService
+        ] = ProcedureService,
     ) -> None:
         self._cli = cli
         self._extension_name = extension_name
@@ -54,6 +72,8 @@ class ApplicationFlow:
         self._make_catalog = make_catalog
         self._make_extension = make_extension
         self._make_privilege_service = make_privilege_service
+        self._make_probe_service = make_probe_service
+        self._make_procedure_service = make_procedure_service
 
     def run(self) -> int:
         cli = self._cli
@@ -134,6 +154,7 @@ class ApplicationFlow:
         cli = self._cli
         do_replace = cli.ask_replace_existing()
         results_by_table: dict[str, tuple[GenerationResult, ...]] = {}
+        has_pk_by_table: dict[str, bool] = {}
         for table_name in selection.tables:
             try:
                 columns = extension.analyze_table(selection.schema, table_name)
@@ -144,6 +165,9 @@ class ApplicationFlow:
                 cli.show(f"Error de validación: {exc}")
                 return EXIT_STOPPED
             cli.show_table_metadata(selection.schema, table_name, columns)
+            has_pk_by_table[table_name] = any(
+                column.is_primary_key for column in columns
+            )
             try:
                 results = extension.generate_crud(
                     selection.schema,
@@ -159,7 +183,9 @@ class ApplicationFlow:
                 return EXIT_STOPPED
             results_by_table[table_name] = results
             cli.show_generation_results(table_name, results)
-        return self._run_privileges(manager, catalog, selection, results_by_table)
+        return self._run_privileges(
+            manager, catalog, selection, results_by_table, has_pk_by_table
+        )
 
     def _run_privileges(
         self,
@@ -167,6 +193,7 @@ class ApplicationFlow:
         catalog: CatalogService,
         selection: CrudSelection,
         results_by_table: dict[str, tuple[GenerationResult, ...]],
+        has_pk_by_table: dict[str, bool],
     ) -> int:
         cli = self._cli
         privilege_service = self._make_privilege_service(manager)
@@ -215,4 +242,131 @@ class ApplicationFlow:
                 cli.show(f"Error de validación: {exc}")
                 return EXIT_STOPPED
             cli.show_privilege_changes(table_name, changes)
+            self._run_verify(manager, matrix, chosen_roles, table_name, results)
+            self._run_execute(
+                manager, table_name, results, has_pk_by_table.get(table_name, True)
+            )
         return EXIT_OK
+
+    def _run_verify(
+        self,
+        manager: ConnectionManager,
+        matrix: PrivilegeMatrix,
+        chosen_roles: list[RoleInfo],
+        table_name: str,
+        results: tuple[GenerationResult, ...],
+    ) -> None:
+        """Verifica la matriz ejecutando cada SUCCESS como cada rol (§11 paso 9).
+
+        Usa argumentos NULL: un rol denegado recibe 42501 antes de ejecutar;
+        cualquier otro desenlace prueba que NO fue denegado. Nunca aborta el
+        flujo: las discrepancias se muestran, no se lanzan.
+        """
+        cli = self._cli
+        verify = cli.ask_verify()
+        if not verify:
+            return
+        probe = self._make_probe_service(manager)
+        outcomes: list[VerifyOutcome] = []
+        for role in chosen_roles:
+            for result in results:
+                if result.status is not GenerationStatus.SUCCESS:
+                    continue
+                if result.identity_arguments is None:
+                    continue
+                expected = matrix.is_allowed(role.name, result.operation)
+                arg_count = len(
+                    split_identity_arguments(result.identity_arguments)
+                )
+                try:
+                    probe_result = probe.probe(
+                        role.name, result, (None,) * arg_count
+                    )
+                except DatabaseConnectionError as exc:
+                    sqlstate = exc.sqlstate or "desconocido"
+                    if sqlstate == "42501":
+                        denied, detail = True, "denegado (42501)."
+                    else:
+                        denied = False
+                        detail = f"no denegado (error {sqlstate}: {exc})."
+                    outcomes.append(
+                        VerifyOutcome(
+                            role=role.name,
+                            operation=result.operation,
+                            expected_allowed=expected,
+                            matched=denied is not expected,
+                            detail=detail,
+                        )
+                    )
+                    continue
+                except (TypeError, ValueError) as exc:
+                    outcomes.append(
+                        VerifyOutcome(
+                            role=role.name,
+                            operation=result.operation,
+                            expected_allowed=expected,
+                            matched=False,
+                            detail=f"error de validación: {exc}.",
+                        )
+                    )
+                    continue
+                if probe_result.status is PermissionProbeStatus.DENIED:
+                    denied, detail = True, "denegado (42501)."
+                else:
+                    denied, detail = False, "permitido y ejecutado."
+                outcomes.append(
+                    VerifyOutcome(
+                        role=role.name,
+                        operation=result.operation,
+                        expected_allowed=expected,
+                        matched=denied is not expected,
+                        detail=detail,
+                    )
+                )
+        cli.show_verify_results(outcomes)
+
+    def _run_execute(
+        self,
+        manager: ConnectionManager,
+        table_name: str,
+        results: tuple[GenerationResult, ...],
+        has_pk: bool,
+    ) -> None:
+        """Ejecuta una operación con valores del administrador (§11 paso 10).
+
+        Los valores viajan como texto (vacío = NULL) y PostgreSQL los
+        convierte; un literal inválido se muestra como error (p. ej. 22P02).
+        READ sin PK trae el listado vía refcursor. Nunca aborta el flujo.
+        """
+        cli = self._cli
+        execute = cli.ask_execute()
+        if not execute:
+            return
+        try:
+            chosen = cli.select_success_operation(results)
+        except ValueError as exc:
+            cli.show(f"Error de validación: {exc}")
+            return
+        if chosen.identity_arguments is None or chosen.routine_name is None:
+            cli.show("Error de validación: resultado sin firma para ejecutar.")
+            return
+        labels = split_identity_arguments(chosen.identity_arguments)
+        values = cli.ask_call_values(labels)
+        runner = self._make_procedure_service(manager)
+        fetch_cursor = (
+            chosen.operation is CrudOperation.READ and not has_pk
+        )
+        try:
+            call_result = runner.call_procedure(
+                chosen.schema_name,
+                chosen.routine_name,
+                tuple(values),
+                fetch_cursor=fetch_cursor,
+            )
+        except DatabaseConnectionError as exc:
+            cli.show(cli.describe_error(exc))
+            return
+        except (TypeError, ValueError) as exc:
+            cli.show(f"Error de validación: {exc}")
+            return
+        cli.show_call_result(call_result)

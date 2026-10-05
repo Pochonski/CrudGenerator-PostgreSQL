@@ -126,6 +126,8 @@ def test_real_flow_lab_producto() -> None:
             "s",  # READ=True
             "n",  # UPDATE=False
             "n",  # DELETE=False
+            "s",  # verificar permisos con probe real
+            "n",  # no ejecutar operaciones con valores
         ],
         [config.password],
     )
@@ -137,6 +139,9 @@ def test_real_flow_lab_producto() -> None:
     assert "producto_insertar" in text
     assert "producto_eliminar" in text
     assert "Privilegios aplicados para producto" in text
+    assert "Verificación de permisos" in text
+    assert "OK crud_vendedor INSERT" in text
+    assert "OK crud_vendedor READ" in text
 
     with ConnectionManager(_config_from_env()) as manager:
         conn = manager.connect()

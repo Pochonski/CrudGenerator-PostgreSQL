@@ -130,6 +130,38 @@ class GenerationResult:
 
 
 @dataclass(frozen=True)
+class CallResult:
+    """Resultado de ejecutar UN procedure generado con valores del administrador.
+
+    ``output`` es la fila ``OUT``/``INOUT`` del ``CALL`` (o ``None`` si no
+    retorna fila). Con READ sin PK (``fetch_cursor=True``), ``is_table`` es
+    True y ``rows`` trae el ``FETCH ALL`` del refcursor (vacío si no hay filas).
+    """
+
+    schema_name: str
+    routine_name: str
+    output: tuple[object, ...] | None = None
+    rows: tuple[tuple[object, ...], ...] = ()
+    is_table: bool = False
+
+
+@dataclass(frozen=True)
+class VerifyOutcome:
+    """Comparación matriz vs realidad para UN rol × UNA operación SUCCESS.
+
+    ``expected_allowed`` es lo que dice la matriz; ``matched`` indica si
+    PostgreSQL coincidió (permitido-ejecutado o denegado-42501); ``detail``
+    describe el resultado observado (incluye SQLSTATE cuando aplica).
+    """
+
+    role: str
+    operation: CrudOperation | None
+    expected_allowed: bool
+    matched: bool
+    detail: str
+
+
+@dataclass(frozen=True)
 class CrudSelection:
     """Selección estructurada lista para la futura generación.
 

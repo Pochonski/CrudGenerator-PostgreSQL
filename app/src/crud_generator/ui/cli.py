@@ -20,13 +20,16 @@ from crud_generator.db.connection import (
     ServerUnavailableError,
 )
 from crud_generator.models import (
+    CallResult,
     ColumnMetadata,
     CrudOperation,
     CrudSelection,
     GenerationResult,
+    GenerationStatus,
     RoleInfo,
     SchemaInfo,
     TableInfo,
+    VerifyOutcome,
 )
 from crud_generator.privileges.service import PrivilegeChange
 
@@ -246,6 +249,106 @@ class Cli:
                 f"- {change.role} {change.operation.value}: {state} "
                 f"({change.routine_name})"
             )
+
+    def ask_verify(self) -> bool:
+        """¿Verificar permisos ejecutando cada procedure como cada rol? (default: s)."""
+        self.show(
+            "Verificar permisos ejecutando cada procedure generado "
+            "como cada rol (con 42501 = denegado) [s/n] (default: s):"
+        )
+        while True:
+            raw = self._read("Verificar: ").strip().lower()
+            if raw in ("", "s", "si", "sí"):
+                return True
+            if raw in ("n", "no"):
+                return False
+            self.show("Respuesta inválida: escriba 's' o 'n'.")
+
+    def show_verify_results(self, outcomes: Sequence[VerifyOutcome]) -> None:
+        """Muestra matriz vs realidad sin ocultar discrepancias."""
+        self.show("Verificación de permisos (matriz vs PostgreSQL):")
+        for outcome in outcomes:
+            operation_label = (
+                outcome.operation.value
+                if outcome.operation is not None
+                else "(sin operación)"
+            )
+            expected = "permitido" if outcome.expected_allowed else "denegado"
+            mark = "OK" if outcome.matched else "DISCREPANCIA"
+            self.show(
+                f"- {mark} {outcome.role} {operation_label}: "
+                f"matriz={expected}, {outcome.detail}"
+            )
+
+    def ask_execute(self) -> bool:
+        """¿Ejecutar una operación con valores del administrador? (default: n)."""
+        self.show(
+            "Ejecutar una operación CRUD con valores (vacío = NULL) "
+            "[s/n] (default: n):"
+        )
+        while True:
+            raw = self._read("Ejecutar: ").strip().lower()
+            if raw in ("", "n", "no"):
+                return False
+            if raw in ("s", "si", "sí"):
+                return True
+            self.show("Respuesta inválida: escriba 's' o 'n'.")
+
+    def select_success_operation(
+        self, results: Sequence[GenerationResult]
+    ) -> GenerationResult:
+        """Elige una operación SUCCESS generada para ejecutarla con valores."""
+        options = [
+            result
+            for result in results
+            if result.status is GenerationStatus.SUCCESS
+            and result.operation is not None
+        ]
+        if not options:
+            raise ValueError("No hay operaciones generadas para ejecutar.")
+        self.show("Seleccionar operación a ejecutar:")
+        for index, result in enumerate(options, start=1):
+            assert result.operation is not None
+            self.show(f"{index}. {result.operation.value} ({result.routine_name})")
+        while True:
+            raw = self._read("Operación [número]: ").strip()
+            try:
+                choice = int(raw)
+            except ValueError:
+                self.show("Selección inválida: escriba el número de la operación.")
+                continue
+            if 1 <= choice <= len(options):
+                return options[choice - 1]
+            self.show("Selección inválida: número fuera de rango.")
+
+    def ask_call_values(self, labels: Sequence[str]) -> list[str | None]:
+        """Pide un valor de texto por parámetro (vacío = NULL explícito).
+
+        Los valores viajan como texto y PostgreSQL los convierte al tipo del
+        parámetro; un literal inválido produce un error mostrable (p. ej.
+        22P02), nunca un SQL inyectado (parametrización + identificadores).
+        """
+        from crud_generator.services.procedure_service import normalize_call_value
+
+        values: list[str | None] = []
+        for position, label in enumerate(labels, start=1):
+            raw = self._read(f"Valor {position} — {label} (vacío = NULL): ")
+            values.append(normalize_call_value(raw))
+        return values
+
+    def show_call_result(self, result: CallResult, max_rows: int = 20) -> None:
+        """Muestra el resultado del CALL (fila OUT/INOUT o filas del refcursor)."""
+        self.show(f"Resultado de {result.routine_name}:")
+        if result.is_table:
+            self.show(f"- filas devueltas: {len(result.rows)}")
+            for row in result.rows[:max_rows]:
+                self.show(f"  {row!r}")
+            if len(result.rows) > max_rows:
+                self.show(f"  ... ({len(result.rows) - max_rows} más)")
+        elif result.output is not None:
+            self.show(f"- valores de retorno: {result.output!r}")
+        else:
+            self.show("- ejecutado sin valores de retorno.")
 
     def describe_error(self, exc: DatabaseConnectionError) -> str:
         """Mensaje comprensible para el usuario, sin traceback."""
