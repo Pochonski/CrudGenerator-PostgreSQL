@@ -1,0 +1,203 @@
+# Guion de Joseph — del Paso 9 al cierre (Terminal A + Terminal B)
+
+**Ámbito:** Paso 9 (5:40–7:00) → casos especiales (7:00–8:10) → Paso 10 (8:10–9:40)
+→ probar tabla nueva (9:40–10:10) → cierre (10:10–10:40).
+**Máquina:** Windows + PostgreSQL 18 local (sin Docker: no usar `docker exec`;
+`psql` directo contra `127.0.0.1:5432`, base `devdb`).
+**Estado previo verificado:** fila 101 presente, matriz aplicada, 4 routines de
+producto, sin restos de `tabla_video_nueva`.
+
+---
+
+## 0. Antes de grabar (fuera de cámara)
+
+- Cerrar notificaciones. PowerShell con letra grande (`Ctrl` + rueda).
+- Grabación con `Win + G` (Xbox Game Bar).
+- La clave (`postgres`) se escribe a ciegas en el prompt de `psql`: nunca en
+  una variable visible ni en texto.
+- Si algo sale distinto a lo esperado: detener, avisar, regrabar el bloque
+  (no improvisar).
+
+---
+
+## 5:40–7:00 · Paso 9 — Validación de seguridad con diferentes roles
+
+En Terminal B (PowerShell):
+
+```powershell
+$env:Path += ";C:\Program Files\PostgreSQL\18\bin"
+psql -h 127.0.0.1 -U postgres -d devdb
+```
+
+Probar primero el vendedor:
+
+```sql
+SET ROLE crud_vendedor;
+CALL lab.producto_consultar(101, NULL, NULL);
+CALL lab.producto_actualizar(101, 'Teclado Gamer', 30.00);
+RESET ROLE;
+```
+
+Lo que se dice: “El vendedor tiene READ, por lo que la consulta está permitida.
+Sin embargo, UPDATE fue revocado; PostgreSQL rechaza realmente esa operación y
+devuelve un error de privilegios.”
+
+Luego el supervisor:
+
+```sql
+SET ROLE crud_supervisor;
+CALL lab.producto_actualizar(101, 'Teclado Gamer', 30.00);
+CALL lab.producto_consultar(101, NULL, NULL);
+CALL lab.producto_eliminar(101);
+RESET ROLE;
+```
+
+Lo que se dice: “El supervisor sí posee UPDATE, por lo que exactamente la misma
+actualización funciona. Sin embargo, DELETE continúa prohibido para este rol.”
+
+Finalmente el administrador:
+
+```sql
+SET ROLE crud_administrador;
+CALL lab.producto_eliminar(101);
+CALL lab.producto_consultar(101, NULL, NULL);
+RESET ROLE;
+```
+
+Lo que se dice: “Finalmente, el administrador sí puede eliminar. La consulta
+posterior confirma que el registro ya no existe.”
+
+Nota: después del DELETE, el READ por PK produce el error de fila no encontrada
+P0002. Los errores de permisos corresponden a 42501. Al terminar este bloque la
+fila 101 queda eliminada y la base limpia.
+
+---
+
+## 7:00–8:10 · Casos especiales — PK compuesta e IDENTITY/DEFAULT
+
+Salir de psql con `\q`. En Terminal A ejecutar `crudgen` y conectarse con los
+mismos datos (servidor `127.0.0.1`, puerto `5432`, base `devdb`, usuario
+`postgres`, clave a ciegas). Responder:
+
+```text
+Esquema: 2 (lab)
+Tablas: 3,6 (detalle_factura y ticket)
+Operaciones: a
+Reemplazar: s
+```
+
+Nota: se responde `s` en Reemplazar porque este laboratorio ya tiene las
+rutinas generadas (en una base limpia del video general sería `n`).
+
+Roles: `2` (únicamente crud_administrador). Habilitar las 8 operaciones con
+`s` (4 de detalle_factura + 4 de ticket). Ante lo nuevo responder:
+
+```text
+Verificar: s
+Ejecutar: n
+```
+
+Lo que se dice: “La generación no está limitada a claves primarias simples. En
+detalle_factura la extensión detecta automáticamente una clave primaria
+compuesta por id_factura e id_producto.”
+
+Lo que se dice: “También detectamos columnas generadas automáticamente y valores
+DEFAULT. Por ejemplo, id_ticket utiliza IDENTITY y no debe ser tratado como un
+parámetro obligatorio de INSERT.”
+
+Nota: la pantalla de metadata muestra tipos reales (`numeric(10,2)`),
+`identity ALWAYS` y PK por columna; los resultados salen como `success` con su
+línea `rutina:`.
+
+---
+
+## 8:10–9:40 · Paso 10 — Tabla creada después del desarrollo
+
+En Terminal B (`psql`, misma conexión) crear la tabla nueva:
+
+```sql
+SET ROLE crud_admin;
+
+CREATE TABLE lab.tabla_video_nueva (
+    id integer PRIMARY KEY,
+    descripcion text NOT NULL,
+    creado_en timestamptz NOT NULL DEFAULT now()
+);
+
+RESET ROLE;
+```
+
+Lo que se dice: “Ahora crearemos una tabla nueva después de que la aplicación
+ya fue desarrollada. No realizaremos ningún cambio en Python ni en la
+extensión.”
+
+Ejecutar `crudgen` nuevamente (Terminal A), seleccionar lab y mostrar que
+`tabla_video_nueva` aparece como **opción 7**. Responder:
+
+```text
+Tablas: 7
+Operaciones: a
+Reemplazar: n
+Roles: 2 (únicamente crud_administrador)
+Matriz: s, s, s, s
+Verificar: s
+Ejecutar: n
+```
+
+Lo que se dice: “La aplicación descubre inmediatamente la tabla mediante el
+catálogo de PostgreSQL.”
+
+Lo que se dice: “Sin modificar una sola línea de Python y sin crear
+procedimientos manualmente, la extensión acaba de analizar una tabla desconocida
+y generar sus cuatro operaciones CRUD.”
+
+---
+
+## 9:40–10:10 · Probar la tabla nueva
+
+En Terminal B:
+
+```sql
+SET ROLE crud_administrador;
+CALL lab.tabla_video_nueva_insertar(1, 'Creada durante la demostración');
+CALL lab.tabla_video_nueva_consultar(1, NULL, NULL);
+RESET ROLE;
+```
+
+Lo que se dice: “El procedure generado para la tabla recién creada funciona
+exactamente igual que los anteriores, incluyendo el manejo automático del valor
+DEFAULT de creado_en.”
+
+Nota: el INSERT lleva solo 2 argumentos (el tercero, `creado_en`, lo pone el
+DEFAULT); el READ devuelve la fila completa con la fecha generada.
+
+---
+
+## 10:10–10:40 · Cierre
+
+Lo que se dice: “Con esta demostración verificamos el flujo completo del
+proyecto. La extensión obtiene metadatos directamente desde los catálogos de
+PostgreSQL, detecta claves primarias simples y compuestas, valores DEFAULT y
+columnas generadas, y crea dinámicamente procedimientos INSERT, READ, UPDATE y
+DELETE. La aplicación Python permite administrar el proceso de generación y
+configurar los privilegios. Finalmente, PostgreSQL hace cumplir esos privilegios
+mediante roles reales, GRANT, REVOKE y procedimientos SECURITY INVOKER. También
+demostramos que una tabla creada posteriormente puede ser analizada y utilizada
+sin modificar el código de la aplicación. Con esto se comprueba que la solución
+es genérica y no depende de tablas hardcodeadas.”
+
+---
+
+## Después de grabar (fuera de cámara, opcional)
+
+Dejar el laboratorio ordenado borrando la tabla de prueba y sus rutinas:
+
+```sql
+SET ROLE crud_admin;
+DROP TABLE IF EXISTS lab.tabla_video_nueva;
+DROP PROCEDURE IF EXISTS lab.tabla_video_nueva_insertar;
+DROP PROCEDURE IF EXISTS lab.tabla_video_nueva_consultar;
+DROP PROCEDURE IF EXISTS lab.tabla_video_nueva_actualizar;
+DROP PROCEDURE IF EXISTS lab.tabla_video_nueva_eliminar;
+RESET ROLE;
+```
