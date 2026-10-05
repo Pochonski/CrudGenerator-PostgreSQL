@@ -60,6 +60,22 @@ class UnexpectedDatabaseError(DatabaseConnectionError):
     """Error PostgreSQL inesperado: conserva SQLSTATE y mensaje original."""
 
 
+class ObjectNotFoundError(UnexpectedDatabaseError):
+    """Objeto inexistente: tabla (42P01), rutina (42883) o columna (42703).
+
+    Subclase de UnexpectedDatabaseError: el código que captura la base
+    sigue funcionando (CONTRACTS.md §5, error de objeto vs inesperado).
+    """
+
+
+class RowNotFoundError(UnexpectedDatabaseError):
+    """Fila inexistente en READ/UPDATE/DELETE por PK (P0002, ADR-015).
+
+    Subclase de UnexpectedDatabaseError por la misma razón que
+    ObjectNotFoundError.
+    """
+
+
 @dataclass(frozen=True)
 class ConnectionInfo:
     """Resultado de validar una conexión. La UI decide cómo mostrarlo."""
@@ -106,6 +122,18 @@ def _map_error(exc: BaseException, config: DatabaseConfig) -> DatabaseConnection
         if sqlstate.startswith("08"):
             return ServerUnavailableError(
                 f"No se pudo conectar a {config.host}:{config.port}: {raw}",
+                sqlstate=sqlstate,
+                original=exc,
+            )
+        if sqlstate in ("42P01", "42883", "42703"):
+            return ObjectNotFoundError(
+                f"Objeto no encontrado (SQLSTATE {sqlstate}): {raw}",
+                sqlstate=sqlstate,
+                original=exc,
+            )
+        if sqlstate == "P0002":
+            return RowNotFoundError(
+                f"Fila inexistente (SQLSTATE P0002): {raw}",
                 sqlstate=sqlstate,
                 original=exc,
             )

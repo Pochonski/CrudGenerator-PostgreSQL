@@ -15,6 +15,8 @@ from crud_generator.db import (
     DatabaseConnectionError,
     DatabaseNotFoundError,
     InsufficientPrivilegeError,
+    ObjectNotFoundError,
+    RowNotFoundError,
     ServerUnavailableError,
     UnexpectedDatabaseError,
 )
@@ -281,6 +283,37 @@ def test_unexpected_sqlstate_preserves_info(monkeypatch: pytest.MonkeyPatch) -> 
     assert exc_info.value.sqlstate == "42601"
     assert "syntax error" in str(exc_info.value)
     assert isinstance(exc_info.value.original, StubPgError)
+
+
+def test_undefined_table_maps_to_object_not_found(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    patch_connect(monkeypatch, StubPgError('relation "lab.x" does not exist', "42P01"))
+
+    with pytest.raises(ObjectNotFoundError) as exc_info:
+        ConnectionManager(make_config()).validate()
+
+    assert exc_info.value.sqlstate == "42P01"
+
+
+def test_undefined_function_maps_to_object_not_found(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    patch_connect(monkeypatch, StubPgError("function lab.x() does not exist", "42883"))
+
+    with pytest.raises(ObjectNotFoundError):
+        ConnectionManager(make_config()).validate()
+
+
+def test_no_data_found_maps_to_row_not_found(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    patch_connect(monkeypatch, StubPgError("no data found", "P0002"))
+
+    with pytest.raises(RowNotFoundError) as exc_info:
+        ConnectionManager(make_config()).validate()
+
+    assert exc_info.value.sqlstate == "P0002"
 
 
 def test_connection_failure_is_never_silent_success(

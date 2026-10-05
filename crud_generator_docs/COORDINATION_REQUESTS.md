@@ -176,30 +176,33 @@ Por qué afecta nuestra área:
   flujo esperado; Python debe poder reproducirlo.
 
 ### CR-ARMANDO-004 — `operations` vacío: Python lanza, la extensión devuelve fila
-Estado: **REQUIERE COORDINACIÓN** (menor, no bloquea; auditoría Joseph PG18)
+Estado: **RESUELTA** (implementada por Joseph con permiso de Armando/Joseph-confirmado).
 
-Contexto: `CONTRACTS.md` §3.3 + extensión (`8f3ebc3`) devuelven fila
-`validation_error` con `operation NULL` ante `operations` vacío/nulo. Python en
-cambio lo impide antes (`_validate_operations` → `ValueError`, sin queries) y
-`_map_generation_row` rechazaría una fila con `operation NULL`. El caso op
-inválida (`MERGE`) sí se mapea bien, pero es inalcanzable vía API normal
-(validación previa). Propuesta: o Python deja pasar el vacío y mapea la fila
-`NULL/validation_error`, o se documenta que Python es deliberadamente más
-estricto que el contrato (defensa en cliente). Decisión de Armando.
+Resolución (opción a): el vacío se envía a PostgreSQL y se mapea la fila
+`NULL/validation_error` (`GenerationResult.operation=None`, solo válido con ese
+status; cualquier otro NULL sigue siendo violación de contrato). Guardas en
+`PrivilegeService` (mensaje "(sin operación)") y `Cli.show_generation_results`.
+Tests: pass-through + mapeo + violación con otro status + `apply_matrix` sin
+`AttributeError`. Validado: pytest + PG18 (fila real de la extensión).
 
 ### CR-ARMANDO-005 — Clasificación fina de errores CONTRACTS §5
-Estado: **REQUIERE COORDINACIÓN** (menor; nada se oculta, SQLSTATE se preserva)
+Estado: **RESUELTA** (implementada por Joseph con permiso confirmado).
 
-`42P01`/`P0002` caen en `UnexpectedDatabaseError` y la CLI los muestra como
-"Error inesperado". Propuesta: distinguir objeto/generación/fila-no-encontrada
-en `describe_error` para la demo. Decisión de Armando.
+`ObjectNotFoundError` (42P01/42883/42703) y `RowNotFoundError` (P0002) como
+subclases de `UnexpectedDatabaseError` (compatibles con todo `pytest.raises`
+existente) + mensajes "Objeto no encontrado" / "Fila inexistente" en
+`describe_error`. Nada se oculta; SQLSTATE se preserva.
 
 ### CR-ARMANDO-006 — `USAGE ON SCHEMA` nunca se revoca
-Estado: **REQUIERE COORDINACIÓN** (menor; residual inocuo sin EXECUTE/tabla)
+Estado: **RESUELTA** (implementada por Joseph con permiso confirmado).
 
-`PrivilegeService` otorga `USAGE` si `allowed_any` pero no lo revoca ante
-denegación total. Propuesta: `REVOKE USAGE` cuando el rol queda sin nada, o
-documentarlo como intencional. Decisión de Armando.
+`_mutate` revoca `USAGE` cuando el rol queda sin nada habilitado en la tabla
+**y** el catálogo confirma que no le quedan grants directos de tabla/rutina en
+el esquema (`information_schema`, misma transacción). Así no se rompe el acceso
+a otras tablas donde el rol sí conserva permisos (verificado en vivo PG18:
+USAGE=t con grants vecinos, USAGE=f sin nada). Tests: secuencias actualizadas +
+`schema_grants` en el fake + quoting hostil. Limitación documentada en el
+módulo (membresías no visibles).
 
 Nota probe: `PermissionProbeService` prueba autorización de READ-sin-PK sin hacer
 `FETCH` del `refcursor` (correcto como probe; el `FETCH` intra-transacción de

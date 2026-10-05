@@ -110,18 +110,17 @@ class GenerationStatus(Enum):
 class GenerationResult:
     """Una fila de ``crud_generator.generate_crud`` (una por operación).
 
-    ``operation`` es siempre un :class:`CrudOperation`: el servicio valida
-    antes de llamar a PostgreSQL que ``operations`` no esté vacío y que todos
-    sus elementos sean ``CrudOperation`` (sin ``NULL``/``None`` ni strings
-    arbitrarios), por lo que un ``operation = NULL`` devuelto por PostgreSQL
-    a través de esta API se trata como violación de contrato (``ValueError``).
+    ``operation`` es ``None`` únicamente en la fila ``validation_error`` que la
+    extensión devuelve cuando ``operations`` llega vacío/nulo (``CONTRACTS.md``
+    §3.3): en ese caso no hay operación a la cual asociar el error. Cualquier
+    otro ``operation = NULL`` se trata como violación de contrato.
 
     ``identity_arguments`` se preserva como el string exacto de PostgreSQL
     (``pg_get_function_identity_arguments``); no se parsea aquí porque se
     usará tal cual para el futuro ``GRANT EXECUTE``.
     """
 
-    operation: CrudOperation
+    operation: CrudOperation | None
     status: GenerationStatus
     schema_name: str
     routine_name: str | None

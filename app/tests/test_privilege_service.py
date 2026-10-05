@@ -91,6 +91,11 @@ class FakeCursor:
             and self._conn.error is not None
         ):
             raise self._conn.error
+        if isinstance(query, str) and "role_table_grants" in query:
+            assert isinstance(params, tuple) and len(params) == 4
+            key = (str(params[1]), str(params[0]))
+            self._conn.pending_rows = [(1,)] if key in self._conn.schema_grants else []
+            return
         if isinstance(query, str) and "pg_proc" in query:
             assert isinstance(params, tuple) and len(params) == 2
             key = (str(params[0]), str(params[1]))
@@ -104,6 +109,10 @@ class FakeCursor:
         self._conn.pending_rows = []
         return rows
 
+    def fetchone(self) -> tuple[Any, ...] | None:
+        rows = self.fetchall()
+        return rows[0] if rows else None
+
 
 class FakePrivConnection:
     def __init__(
@@ -114,8 +123,12 @@ class FakePrivConnection:
         transaction_status: TransactionStatus = TransactionStatus.IDLE,
         error: BaseException | None = None,
         fail_at: int | None = None,
+        schema_grants: set[tuple[str, str]] | None = None,
     ) -> None:
         self.catalog = dict(catalog or {})
+        # Pares (esquema, rol) con grants directos residuales en el esquema
+        # (para el chequeo previo a REVOKE USAGE; vacío = sin nada).
+        self.schema_grants = set(schema_grants or set())
         self.autocommit = autocommit
         self.info = FakeInfo(transaction_status)
         self.closed = False
@@ -146,6 +159,7 @@ def make_service(
     transaction_status: TransactionStatus = TransactionStatus.IDLE,
     error: BaseException | None = None,
     fail_at: int | None = None,
+    schema_grants: set[tuple[str, str]] | None = None,
 ) -> tuple[PrivilegeService, FakePrivConnection]:
     fake = FakePrivConnection(
         catalog,
@@ -153,6 +167,7 @@ def make_service(
         transaction_status=transaction_status,
         error=error,
         fail_at=fail_at,
+        schema_grants=schema_grants,
     )
     monkeypatch.setattr(psycopg, "connect", lambda **kwargs: fake)
     return PrivilegeService(ConnectionManager(make_config())), fake
@@ -437,6 +452,27 @@ def test_validation_error_rejects_everything(
     assert _mutations(fake) == []
 
 
+def test_null_operation_validation_error_rejects_without_crash(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Fila NULL/validation_error (operations vacío): ValueError claro, sin AttributeError."""
+    service, fake = make_service(monkeypatch)
+    matrix = _matrix_all([], ["r1"])
+    invalid = GenerationResult(
+        operation=None,
+        status=GenerationStatus.VALIDATION_ERROR,
+        schema_name="lab",
+        routine_name=None,
+        identity_arguments=None,
+        message="Debe indicar al menos una operacion.",
+        sqlstate=None,
+    )
+
+    with pytest.raises(ValueError, match="sin operación"):
+        service.apply_matrix("lab", "t", matrix, [invalid])
+    assert _mutations(fake) == []
+
+
 def test_not_applicable_enabled_is_rejected(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
@@ -620,10 +656,12 @@ def test_denied_revokes_execute_and_table(
 
     assert change.allowed is False
     mutations = _mutations(fake)
-    assert len(mutations) == 2  # sin USAGE nuevo
+    # REVOKE EXECUTE + REVOKE tabla + chequeo de grants + REVOKE USAGE.
+    assert len(mutations) == 4
     fragments = [_normalized(s) for s in mutations]
     assert any("REVOKE EXECUTE ON PROCEDURE" in f for f in fragments)
     assert any(f"REVOKE {table_priv} ON" in f for f in fragments)
+    assert any("REVOKE USAGE ON SCHEMA" in f for f in fragments)
 
 
 def test_fully_denied_role_still_produces_revokes(
@@ -646,7 +684,8 @@ def test_fully_denied_role_still_produces_revokes(
 
     assert len(changes) == 2
     assert all(c.allowed is False for c in changes)
-    assert len(_mutations(fake)) == 4
+    # 2×(REVOKE EXECUTE + REVOKE tabla) + chequeo + REVOKE USAGE.
+    assert len(_mutations(fake)) == 6
 
 
 def test_usage_granted_once_per_allowed_role(
@@ -668,9 +707,10 @@ def test_usage_granted_once_per_allowed_role(
     assert len(usage) == 1
 
 
-def test_fully_denied_role_gets_no_new_usage(
+def test_fully_denied_role_gets_usage_revoked_not_granted(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
+    """Rol sin nada habilitado y sin otros grants: USAGE se revoca, no se otorga."""
     service, fake = make_service(
         monkeypatch, catalog={("lab", "t_insertar"): [(1, "IN p_1 integer")]}
     )
@@ -681,8 +721,52 @@ def test_fully_denied_role_gets_no_new_usage(
         "lab", "t", matrix, [_success(CrudOperation.INSERT)]
     )
 
-    for stmt in _mutations(fake):
-        assert "USAGE" not in _normalized(stmt)
+    fragments = [_normalized(s) for s in _mutations(fake)]
+    assert any("REVOKE USAGE ON SCHEMA" in f for f in fragments)
+    assert not any("GRANT USAGE ON SCHEMA" in f for f in fragments)
+
+
+def test_usage_kept_when_role_has_other_schema_grants(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """USAGE se conserva si al rol le quedan grants en otras tablas del esquema."""
+    service, fake = make_service(
+        monkeypatch,
+        catalog={("lab", "t_insertar"): [(1, "IN p_1 integer")]},
+        schema_grants={("lab", "r1")},
+    )
+    matrix = PrivilegeMatrix()
+    matrix.add_role("r1")
+
+    service.apply_matrix(
+        "lab", "t", matrix, [_success(CrudOperation.INSERT)]
+    )
+
+    fragments = [_normalized(s) for s in _mutations(fake)]
+    assert not any("USAGE" in f for f in fragments)
+
+
+def test_usage_revoke_quotes_hostile_role(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    service, fake = make_service(
+        monkeypatch, catalog={("lab", "t_insertar"): [(1, "IN p_1 integer")]}
+    )
+    matrix = PrivilegeMatrix()
+    matrix.add_role('r"; DROP --')
+
+    service.apply_matrix(
+        "lab", "t", matrix, [_success(CrudOperation.INSERT)]
+    )
+
+    revoke = [
+        s
+        for s in _mutations(fake)
+        if "REVOKE USAGE ON SCHEMA" in _normalized(s)
+    ]
+    assert len(revoke) == 1
+    assert 'r"; DROP --' in _identifiers(revoke[0])
+    assert "DROP TABLE" not in _normalized(revoke[0])
 
 
 def test_roles_are_not_hardcoded(monkeypatch: pytest.MonkeyPatch) -> None:
@@ -1060,7 +1144,8 @@ def test_not_applicable_denied_cleans_table_privilege(
 
     assert changes == ()
     mutations = _mutations(fake)
-    assert len(mutations) == 1
+    # REVOKE tabla + chequeo + REVOKE USAGE (sin otros grants en el esquema).
+    assert len(mutations) == 3
     assert _normalized(mutations[0]) == f"REVOKE {table_priv} ON . FROM"
     assert "EXECUTE" not in _normalized(mutations[0])
     assert "GRANT" not in _normalized(mutations[0])
@@ -1080,8 +1165,10 @@ def test_not_applicable_cleanup_for_each_denied_role(
     )
 
     mutations = _mutations(fake)
-    assert len(mutations) == 2
-    assert all("REVOKE DELETE ON" in _normalized(s) for s in mutations)
+    # 2 roles × (REVOKE tabla + chequeo + REVOKE USAGE).
+    assert len(mutations) == 6
+    assert "REVOKE DELETE ON" in _normalized(mutations[0])
+    assert "REVOKE DELETE ON" in _normalized(mutations[3])
 
 
 def test_mixed_success_and_not_applicable(monkeypatch: pytest.MonkeyPatch) -> None:
@@ -1104,8 +1191,8 @@ def test_mixed_success_and_not_applicable(monkeypatch: pytest.MonkeyPatch) -> No
 
     changes = service.apply_matrix("lab", "t", matrix, results)
 
-    # role_a recibe USAGE una sola vez.
-    usage = [s for s in _mutations(fake) if "USAGE" in _normalized(s)]
+    # role_a recibe GRANT USAGE una sola vez (role_b recibe REVOKE USAGE).
+    usage = [s for s in _mutations(fake) if "GRANT USAGE ON SCHEMA" in _normalized(s)]
     assert len(usage) == 1
     assert "role_a" in _identifiers(usage[0])
     # role_a: GRANT INSERT/SELECT + REVOKE UPDATE tabla.
@@ -1113,9 +1200,13 @@ def test_mixed_success_and_not_applicable(monkeypatch: pytest.MonkeyPatch) -> No
     assert any("GRANT INSERT ON" in f for f in fragments)
     assert any("GRANT SELECT ON" in f for f in fragments)
     assert any("REVOKE UPDATE ON" in f for f in fragments)
-    # role_b no recibe USAGE pero sí REVOKEs de SUCCESS denied + NOT_APPLICABLE.
+    # role_b no recibe GRANT USAGE (solo REVOKEs + REVOKE USAGE al quedar sin nada).
     assert not any(
-        "role_b" in _identifiers(s) and "USAGE" in _normalized(s)
+        "role_b" in _identifiers(s) and "GRANT USAGE" in _normalized(s)
+        for s in _mutations(fake)
+    )
+    assert any(
+        "role_b" in _identifiers(s) and "REVOKE USAGE" in _normalized(s)
         for s in _mutations(fake)
     )
     # PrivilegeChange solo para rol × SUCCESS (2 roles × 2 ops).

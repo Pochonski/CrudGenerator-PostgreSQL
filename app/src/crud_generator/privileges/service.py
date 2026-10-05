@@ -10,13 +10,21 @@ generados por la extensión y la tabla base (modelo de dos llaves bajo
 - llave 2: permiso correspondiente sobre la tabla
   (``INSERT``/``SELECT``/``UPDATE``/``DELETE``);
 - más ``USAGE ON SCHEMA`` (una vez por rol con al menos una operación
-  habilitada) para poder calificar los objetos.
+  habilitada) para poder calificar los objetos; si el rol queda sin nada
+  habilitado en esta tabla Y sin ningún otro grant en el esquema, se revoca
+  ``USAGE`` (higiene de mínimo privilegio, CR-ARMANDO-006). ``USAGE`` es a
+  nivel esquema: por eso solo se revoca cuando el catálogo confirma que al
+  rol no le queda ningún grant de tabla ni de rutina en el esquema (no
+  bastaría con mirar esta tabla: rompería el acceso a otras tablas donde
+  el rol sí conserva permisos).
 
 Limitación documentada: este servicio administra ``GRANT``/``REVOKE``
 directos. Un ``REVOKE`` directo no garantiza acceso efectivo denegado si el
 rol conserva el privilegio por otra vía (membresía en otro rol, ``PUBLIC``,
-superusuario u owner). La validación efectiva real (``SET ROLE`` + ``CALL``)
-queda pendiente (CR-ARMANDO-003) y no se implementa aquí.
+superusuario u owner). La misma salvedad aplica a la conservación de
+``USAGE``: si el rol recibe grants por membresía, el chequeo de grants
+directos no los ve. La validación efectiva real (``SET ROLE`` + ``CALL``)
+vive en ``PermissionProbeService`` (CR-ARMANDO-003).
 """
 
 from __future__ import annotations
@@ -59,6 +67,18 @@ _FIND_PROCEDURE_QUERY = (
     "JOIN pg_catalog.pg_namespace AS n ON n.oid = p.pronamespace "
     "WHERE n.nspname = %s AND p.proname = %s AND p.prokind = 'p' "
     "ORDER BY p.oid"
+)
+
+#: ¿Conserva el rol algún grant DIRECTO en el esquema (tabla o rutina)?
+#: Solo grants directos: la membresía en otros roles no se ve aquí (ver
+#: limitación en el docstring del módulo). Parámetros: (rol, esquema).
+_SCHEMA_GRANTS_QUERY = (
+    "SELECT 1 FROM information_schema.role_table_grants "
+    "WHERE grantee = %s AND table_schema = %s "
+    "UNION ALL "
+    "SELECT 1 FROM information_schema.role_routine_grants "
+    "WHERE grantee = %s AND specific_schema = %s "
+    "LIMIT 1"
 )
 
 
@@ -247,9 +267,14 @@ class PrivilegeService:
                 GenerationStatus.PROCEDURE_CONFLICT,
                 GenerationStatus.VALIDATION_ERROR,
             ):
+                operation_label = (
+                    result.operation.value
+                    if result.operation is not None
+                    else "(sin operación)"
+                )
                 raise ValueError(
                     f"No se puede aplicar privilegios con status "
-                    f"{result.status.value} en {result.operation.value}: "
+                    f"{result.status.value} en {operation_label}: "
                     "resuelva la generación antes de aplicar la matriz."
                 )
             if result.status is GenerationStatus.NOT_APPLICABLE:
@@ -330,6 +355,19 @@ class PrivilegeService:
                 )
             signatures[result.operation] = catalog_identity
         return signatures
+
+    @staticmethod
+    def _role_has_other_schema_grants(
+        cursor: Any, schema_name: str, role: str
+    ) -> bool:
+        """¿Le queda al rol algún grant directo de tabla/rutina en el esquema?
+
+        Se consulta DESPUÉS de aplicar los REVOKE de esta tabla, dentro de la
+        misma transacción: lo que queda visible es lo que sobreviviría. Solo
+        grants directos (``information_schema`` no resuelve membresías).
+        """
+        cursor.execute(_SCHEMA_GRANTS_QUERY, (role, schema_name, role, schema_name))
+        return cursor.fetchone() is not None
 
     @staticmethod
     def _mutate(
@@ -428,6 +466,15 @@ class PrivilegeService:
                             schema_name=schema_name,
                             table_name=table_name,
                             routine_name=routine,
+                        )
+                    )
+                if not allowed_any and not PrivilegeService._role_has_other_schema_grants(
+                    cursor, schema_name, role
+                ):
+                    cursor.execute(
+                        sql.SQL("REVOKE USAGE ON SCHEMA {} FROM {}").format(
+                            sql.Identifier(schema_name),
+                            sql.Identifier(role),
                         )
                     )
         return tuple(changes)

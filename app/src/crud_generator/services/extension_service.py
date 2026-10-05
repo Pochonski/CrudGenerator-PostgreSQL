@@ -64,7 +64,12 @@ def _validate_identifier(value: str, *, kind: str) -> str:
 
 
 def _validate_operations(operations: Iterable[CrudOperation]) -> list[CrudOperation]:
-    """Materializa y valida ``operations`` preservando el orden solicitado."""
+    """Materializa y valida ``operations`` preservando el orden solicitado.
+
+    Una lista vacía es válida y se envía tal cual a PostgreSQL, que responde
+    con una fila ``validation_error`` (``CONTRACTS.md`` §3.3); no se rechaza
+    en el cliente para no ocultar el contrato de la extensión.
+    """
     if isinstance(operations, (str, bytes)):
         raise TypeError(
             "operations debe ser un iterable de CrudOperation, no str/bytes."
@@ -75,8 +80,6 @@ def _validate_operations(operations: Iterable[CrudOperation]) -> list[CrudOperat
         raise TypeError(
             "operations debe ser un iterable de CrudOperation."
         ) from exc
-    if not items:
-        raise ValueError("Debe indicar al menos una operación.")
     for item in items:
         if not isinstance(item, CrudOperation):
             raise TypeError(
@@ -118,23 +121,28 @@ def _map_generation_row(row: tuple[Any, ...]) -> GenerationResult:
             f"Contrato generate_crud violado: se esperaban 7 columnas, llegaron {len(row)}."
         )
     raw_operation = row[0]
-    if raw_operation is None:
-        raise ValueError(
-            "Contrato generate_crud violado: operation NULL "
-            "(el servicio nunca envía operations NULL/vacío/None)."
-        )
-    try:
-        operation = CrudOperation(str(raw_operation))
-    except ValueError as exc:
-        raise ValueError(
-            f"Contrato generate_crud violado: operation desconocida {raw_operation!r}."
-        ) from exc
     try:
         status = GenerationStatus(str(row[1]))
     except ValueError as exc:
         raise ValueError(
             f"Contrato generate_crud violado: status desconocido {row[1]!r}."
         ) from exc
+    if raw_operation is None:
+        # Único NULL legítimo: validation_error por operations vacío/nulo
+        # (CONTRACTS.md §3.3). Cualquier otro caso es violación de contrato.
+        if status is not GenerationStatus.VALIDATION_ERROR:
+            raise ValueError(
+                "Contrato generate_crud violado: operation NULL "
+                f"con status {status.value} (solo validation_error admite NULL)."
+            )
+        operation = None
+    else:
+        try:
+            operation = CrudOperation(str(raw_operation))
+        except ValueError as exc:
+            raise ValueError(
+                f"Contrato generate_crud violado: operation desconocida {raw_operation!r}."
+            ) from exc
     if row[2] is None:
         raise ValueError("Contrato generate_crud violado: schema_name NULL.")
     if row[5] is None:

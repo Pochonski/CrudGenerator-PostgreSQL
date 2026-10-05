@@ -112,8 +112,8 @@ owner `crud_admin`, `prosecdef=false`, `PUBLIC` sin `EXECUTE`, matriz 3 roles
   reporta correctamente `NOT_INSTALLED`).
 - Auditoría de código PRs #9/#10 (contratos + ADR-013): mapeo `analyze`/`generate`
   exacto, 0 f-strings a SQL (todo `Identifier`/`%s`), dos llaves INVOKER, probe con
-  `CALL` real + `SET LOCAL ROLE`, sin lógica CRUD en Python. Hallazgos menores
-  para Armando en `COORDINATION_REQUESTS.md` (CR-ARMANDO-004..006).
+  `CALL` real + `SET LOCAL ROLE`, sin lógica CRUD en Python. CR-ARMANDO-004..006
+  implementados y validados en PG18 (ver `COORDINATION_REQUESTS.md`).
 
 ## Riesgos actuales
 

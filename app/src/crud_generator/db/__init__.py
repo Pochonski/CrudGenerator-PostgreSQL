@@ -12,6 +12,8 @@ from crud_generator.db.connection import (
     DatabaseConnectionError,
     DatabaseNotFoundError,
     InsufficientPrivilegeError,
+    ObjectNotFoundError,
+    RowNotFoundError,
     ServerUnavailableError,
     UnexpectedDatabaseError,
 )
@@ -23,6 +25,8 @@ __all__ = [
     "DatabaseConnectionError",
     "DatabaseNotFoundError",
     "InsufficientPrivilegeError",
+    "ObjectNotFoundError",
+    "RowNotFoundError",
     "ServerUnavailableError",
     "UnexpectedDatabaseError",
 ]

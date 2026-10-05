@@ -9,6 +9,8 @@ from crud_generator.db.connection import (
     DatabaseConnectionError,
     DatabaseNotFoundError,
     InsufficientPrivilegeError,
+    ObjectNotFoundError,
+    RowNotFoundError,
     ServerUnavailableError,
     UnexpectedDatabaseError,
 )
@@ -180,6 +182,8 @@ def test_describe_error_maps_each_type() -> None:
     assert "no encontrada" in cli.describe_error(DatabaseNotFoundError("x"))
     assert "conectar" in cli.describe_error(ServerUnavailableError("x"))
     assert "Permiso" in cli.describe_error(InsufficientPrivilegeError("x"))
+    assert "no encontrado" in cli.describe_error(ObjectNotFoundError("x"))
+    assert "inexistente" in cli.describe_error(RowNotFoundError("x"))
     assert "inesperado" in cli.describe_error(UnexpectedDatabaseError("x"))
     assert "inesperado" in cli.describe_error(DatabaseConnectionError("x"))
 

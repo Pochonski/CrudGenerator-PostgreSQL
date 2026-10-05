@@ -759,14 +759,55 @@ def test_generate_preserves_order(monkeypatch: pytest.MonkeyPatch) -> None:
     assert second.operation is CrudOperation.INSERT
 
 
-def test_generate_empty_operations_fails_without_query(
+def test_generate_empty_operations_passes_through_and_maps_validation_error(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    service, fake = make_service(monkeypatch, rows=(_generation_row(),))
+    """operations vacío se envía a PG, que responde fila validation_error (CONTRACTS §3.3)."""
+    service, fake = make_service(
+        monkeypatch,
+        rows=(
+            _generation_row(
+                operation=None,
+                status="validation_error",
+                routine_name=None,
+                identity_arguments=None,
+                message="Debe indicar al menos una operacion (INSERT/READ/UPDATE/DELETE).",
+            ),
+        ),
+    )
+
+    (result,) = service.generate_crud("lab", "t", [])
+
+    (_, params) = fake.queries[0]
+    assert params[2] == []
+    assert result.status is GenerationStatus.VALIDATION_ERROR
+    assert result.operation is None
+
+
+def test_generate_null_operation_with_validation_error_maps(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    service, _ = make_service(
+        monkeypatch,
+        rows=(_generation_row(operation=None, status="validation_error"),),
+    )
+
+    (result,) = service.generate_crud("lab", "t", [CrudOperation.INSERT])
+
+    assert result.operation is None
+    assert result.status is GenerationStatus.VALIDATION_ERROR
+
+
+def test_generate_null_operation_with_other_status_is_contract_violation(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    service, _ = make_service(
+        monkeypatch,
+        rows=(_generation_row(operation=None, status="not_applicable"),),
+    )
 
     with pytest.raises(ValueError):
-        service.generate_crud("lab", "t", [])
-    assert fake.queries == []
+        service.generate_crud("lab", "t", [CrudOperation.UPDATE])
 
 
 def test_generate_non_crudoperation_raises_type_error(

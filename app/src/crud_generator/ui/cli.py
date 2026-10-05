@@ -15,6 +15,8 @@ from crud_generator.db.connection import (
     DatabaseConnectionError,
     DatabaseNotFoundError,
     InsufficientPrivilegeError,
+    ObjectNotFoundError,
+    RowNotFoundError,
     ServerUnavailableError,
 )
 from crud_generator.models import (
@@ -178,8 +180,13 @@ class Cli:
         """Muestra cada fila de generate_crud sin ocultar ningún status."""
         self.show(f"Generación para {table_name}:")
         for result in results:
+            operation_label = (
+                result.operation.value
+                if result.operation is not None
+                else "(sin operación)"
+            )
             self.show(
-                f"- {result.operation.value}: {result.status.value}"
+                f"- {operation_label}: {result.status.value}"
             )
             if result.routine_name is not None:
                 self.show(f"  rutina: {result.routine_name}")
@@ -250,6 +257,10 @@ class Cli:
             return f"No se pudo conectar al servidor: {exc}"
         if isinstance(exc, InsufficientPrivilegeError):
             return f"Permiso insuficiente: {exc}"
+        if isinstance(exc, ObjectNotFoundError):
+            return f"Objeto no encontrado: {exc}"
+        if isinstance(exc, RowNotFoundError):
+            return f"Fila inexistente: {exc}"
         return f"Error inesperado: {exc}"
 
     def _ask_with_default(self, label: str, default: str) -> str:
