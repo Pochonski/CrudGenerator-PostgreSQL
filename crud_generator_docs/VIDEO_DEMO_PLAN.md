@@ -19,9 +19,12 @@ Remotion y se entregan aparte.
 ## 2. Cómo se produjo
 
 El video no es una grabación de pantalla: es una presentación animada generada
-por código, con el mismo estilo que el ejemplo de referencia del curso (portada,
-arquitectura, un bloque por paso del enunciado, pruebas, decisiones técnicas y
-cierre). Aun así, **todo lo que aparece en las terminales es real**:
+por código (portada, arquitectura, un bloque por paso del enunciado, pruebas,
+criterios de diseño y cierre), con identidad propia de estilo **claro editorial**:
+fondo papel, títulos serif, un único acento azul PostgreSQL, riel lateral con el
+recorrido de los 10 pasos, terminales estilo Windows Terminal con pestañas y una
+nota al pie "Qué pasa" en cada escena. Aun así, **todo lo que aparece en las
+terminales es real**:
 
 1. Se reseteó `devdb` (PostgreSQL 18 local, `127.0.0.1:5432`) con
    `reset_video_windows.ps1`.
@@ -45,8 +48,8 @@ premade "Eric") a partir del guion en `src/datos/narracion.ts`.
 
 | # | Escena | Paso §10 | Qué muestra |
 |---|---|---|---|
-| 1 | Portada | — | Título, curso, integrantes (Armando: Python + interfaz; Joyce: extensión; Joseph: seguridad, integración y pruebas) |
-| 2 | Arquitectura | — | crudgen → extensión `crud_generator` (`analyze_table`, `generate_crud`) → catálogos (`pg_namespace`, `pg_class`, `pg_attribute`, `pg_attrdef`, `pg_index`) → procedures `lab.<tabla>_insertar/_consultar/_actualizar/_eliminar` → roles con GRANT/REVOKE |
+| 1 | Portada | — | "Procedimientos CRUD que se escriben solos", curso y equipo (Armando: Python e interfaz; Joyce: extensión; Joseph: seguridad, integración y pruebas) |
+| 2 | Cómo está construido | — | Diagrama en capas: crudgen → extensión `crud_generator` (`analyze_table`, `generate_crud`) → catálogos (`pg_namespace`, `pg_class`, `pg_attribute`, `pg_attrdef`, `pg_index`) y procedures `lab.<tabla>_insertar/_consultar/_actualizar/_eliminar` → roles |
 | 3 | Instalación | 1 | `CREATE EXTENSION crud_generator;`, `GRANT USAGE … TO crud_admin`, versión 1.0 en esquema `crud_generator` |
 | 4 | Conexión y detección | 2–3 | `crudgen` se conecta a `devdb`, asume `crud_admin` y verifica extensión, versión, esquema y USAGE |
 | 5 | Esquema y tablas | 4–5 | Listados leídos del catálogo; se elige `lab`, `producto` y las 4 operaciones |
@@ -58,8 +61,8 @@ premade "Eric") a partir del guion en `src/datos/narracion.ts`.
 | 11 | Validación por rol | 9 | Vendedor sin UPDATE (42501), supervisor sin DELETE (42501), administrador elimina y el READ posterior da fila inexistente (P0002) |
 | 12–14 | Tabla nueva | 10 | `lab.tabla_video_nueva` creada después del desarrollo: crudgen la descubre, genera su CRUD y sus procedures funcionan (INSERT con 2 argumentos, DEFAULT `now()`), vendedor sin READ → 42501 |
 | 15 | Pruebas | — | pytest 311 passed + extracto del harness SQL (153 OK) |
-| 16–20 | Decisiones técnicas | — | SECURITY INVOKER + doble llave; REVOKE EXECUTE de PUBLIC; SQL dinámico con `%I`/`%L`; INSERT que respeta IDENTITY/DEFAULT; regeneración controlada (`procedure_conflict`, `do_replace`) y READ por PK (P0002) |
-| 21 | Cierre | — | Cifras: 311 pruebas, 153 verificaciones, 16 procedures, PostgreSQL 18 |
+| 16–20 | Criterios de diseño | — | 01 Permisos de quien llama, no del dueño (SECURITY INVOKER + doble llave); 02 Nadie ejecuta por defecto (REVOKE EXECUTE de PUBLIC); 03 Nombres y valores siempre escapados (`%I`/`%L`); 04 El INSERT deja trabajar a PostgreSQL (IDENTITY/DEFAULT); 05 Regenerar sin pisar nada (`procedure_conflict`, `do_replace`, READ por PK → P0002) |
+| 21 | Balance | — | "Los diez puntos del enunciado, cumplidos": lista de los 10 puntos de §10 marcándose, más las cifras (311 pruebas, 153 verificaciones, 16 procedures, PostgreSQL 18) |
 
 ## 4. Proyecto Remotion (`video_entrega/remotion/`)
 
@@ -70,7 +73,9 @@ src/
   datos/capturas.ts        salidas reales de crudgen y psql
   datos/linea-de-tiempo.ts convierte comandos/prompts/salidas en eventos con tiempo
   datos/narracion.ts       guion hablado, un texto por escena
-  componentes/             Terminal (tecleo animado), EncabezadoPaso, Leyenda, Fondo
+  tema.ts                  colores, tipografías y geometría (estilo claro editorial)
+  componentes/             Terminal (tecleo animado, pestañas), RielProgreso,
+                           EncabezadoPaso, NotaAlPie, Fondo
   escenas/                 una escena por archivo (Portada, Paso1Instalacion, …)
 scripts/generar-voz.ts     genera public/voz/*.mp3 con ElevenLabs
 public/voz/                21 mp3 de narración (versionados)
@@ -80,7 +85,7 @@ public/voz/                21 mp3 de narración (versionados)
   mp3 con `getAudioDurationInSeconds` y cada escena dura su audio + 0,5 s.
   Si una terminal tarda más que su narración, `Terminal` acelera el tecleo para
   terminar 1 s antes del corte.
-- **Edición**: textos, colores y tamaños de encabezados, leyendas y decisiones
+- **Edición**: textos de encabezados, notas al pie, riel y criterios
   se editan desde Remotion Studio (componentes `Interactive.withSchema`).
 
 ### Regenerar

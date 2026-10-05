@@ -2,9 +2,45 @@ import {Audio} from '@remotion/media';
 import {Easing, Interactive, interpolate, staticFile, useCurrentFrame, useVideoConfig} from 'remotion';
 import {EncabezadoPaso} from '../componentes/EncabezadoPaso.tsx';
 import {Fondo} from '../componentes/Fondo.tsx';
+import {RielProgreso} from '../componentes/RielProgreso.tsx';
+import {COLOR, FUENTE} from '../tema.ts';
 
-// Diagrama: Python -> extension -> catalogos / procedures -> roles.
-// Cada caja aparece en orden, siguiendo el flujo real de la solucion.
+type CapaProps = {
+  readonly x: number;
+  readonly y: number;
+  readonly w: number;
+  readonly h: number;
+  readonly color: string;
+  readonly rotulo: string;
+  readonly titulo: string;
+  readonly texto: string;
+  readonly desde: number;
+};
+
+// Una capa del diagrama: tarjeta blanca con franja de color a la izquierda.
+const Capa: React.FC<CapaProps> = ({x, y, w, h, color, rotulo, titulo, texto, desde}) => {
+  const frame = useCurrentFrame();
+
+  return (
+    <div
+      style={{
+        position: 'absolute', left: x, top: y, width: w, height: h, background: COLOR.blanco, border: `1px solid ${COLOR.linea}`,
+        borderLeft: `8px solid ${color}`, borderRadius: 6, padding: '18px 26px', display: 'flex', flexDirection: 'column', justifyContent: 'center',
+        opacity: interpolate(frame, [desde, desde + 14], [0, 1], {extrapolateLeft: 'clamp', extrapolateRight: 'clamp'}),
+        translate: interpolate(frame, [desde, desde + 14], ['0px 16px', '0px 0px'], {extrapolateLeft: 'clamp', extrapolateRight: 'clamp', easing: Easing.bezier(0.16, 1, 0.3, 1)}),
+      }}
+    >
+      <div style={{fontSize: 15, letterSpacing: 3, textTransform: 'uppercase', color, fontWeight: 700}}>{rotulo}</div>
+      <div style={{fontFamily: FUENTE.serif, fontSize: 34, marginTop: 4}}>{titulo}</div>
+      <div style={{fontFamily: FUENTE.mono, fontSize: 19, color: COLOR.gris, marginTop: 8}}>{texto}</div>
+    </div>
+  );
+};
+
+// Trazo SVG que se dibuja entre dos cuadros.
+const progresoTrazo = (frame: number, desde: number) =>
+  interpolate(frame, [desde, desde + 18], [1, 0], {extrapolateLeft: 'clamp', extrapolateRight: 'clamp', easing: Easing.bezier(0.65, 0, 0.35, 1)});
+
 export const Arquitectura: React.FC = () => {
   const frame = useCurrentFrame();
   const {fps} = useVideoConfig();
@@ -12,108 +48,31 @@ export const Arquitectura: React.FC = () => {
   return (
     <Fondo>
       <Audio name="Voz" src={staticFile('voz/voz_arquitectura.mp3')} premountFor={fps} />
-      <EncabezadoPaso name="Encabezado" premountFor={fps} insignia="▶" titulo="Arquitectura de la solución" subtitulo="La lógica de generación vive en PostgreSQL; Python orquesta" />
-      <Interactive.Div
-        name="Caja Python"
-        style={{
-          position: 'absolute', left: 60, top: 330, width: 470, border: '2px solid #4ea8ff', borderRadius: 18, padding: '22px 26px', background: '#0b1226',
-          opacity: interpolate(frame, [12, 27], [0, 1], {extrapolateLeft: 'clamp', extrapolateRight: 'clamp'}),
-          translate: interpolate(frame, [12, 27], ['0px 24px', '0px 0px'], {extrapolateLeft: 'clamp', extrapolateRight: 'clamp', easing: Easing.bezier(0.16, 1, 0.3, 1)}),
-        }}
-      >
-        <div style={{fontSize: 32, fontWeight: 700, color: '#4ea8ff', marginBottom: 12}}>Aplicación Python · crudgen</div>
-        <div style={{fontFamily: 'Consolas, monospace', fontSize: 21, lineHeight: '32px', color: '#cdd6ea'}}>
-          Conecta y asume crud_admin<br />Detecta la extensión<br />Elige esquema, tablas y operaciones<br />Aplica la matriz GRANT / REVOKE<br />Verifica permisos por rol
-        </div>
-      </Interactive.Div>
-      <Interactive.Div
-        name="Flecha SELECT"
-        style={{
-          position: 'absolute', left: 540, top: 440, fontFamily: 'Consolas, monospace', fontSize: 20, color: '#8a96b3',
-          opacity: interpolate(frame, [48, 60], [0, 1], {extrapolateLeft: 'clamp', extrapolateRight: 'clamp'}),
-        }}
-      >
-        SELECT ─────▶
-      </Interactive.Div>
-      <Interactive.Div
-        name="Caja extensión"
-        style={{
-          position: 'absolute', left: 690, top: 360, width: 440, border: '2px solid #8b7bff', borderRadius: 18, padding: '22px 26px', background: '#0b1226',
-          opacity: interpolate(frame, [54, 69], [0, 1], {extrapolateLeft: 'clamp', extrapolateRight: 'clamp'}),
-          translate: interpolate(frame, [54, 69], ['0px 24px', '0px 0px'], {extrapolateLeft: 'clamp', extrapolateRight: 'clamp', easing: Easing.bezier(0.16, 1, 0.3, 1)}),
-        }}
-      >
-        <div style={{fontSize: 32, fontWeight: 700, color: '#8b7bff', marginBottom: 12}}>Extensión crud_generator 1.0</div>
-        <div style={{fontFamily: 'Consolas, monospace', fontSize: 21, lineHeight: '32px', color: '#cdd6ea'}}>
-          analyze_table(esquema, tabla)<br />generate_crud(esquema, tabla,<br />&nbsp;&nbsp;operaciones, do_replace)<br />SQL + PL/pgSQL
-        </div>
-      </Interactive.Div>
-      <Interactive.Div
-        name="Caja catálogos"
-        style={{
-          position: 'absolute', left: 1260, top: 190, width: 600, border: '2px solid #ffc845', borderRadius: 18, padding: '22px 26px', background: '#0b1226',
-          opacity: interpolate(frame, [96, 111], [0, 1], {extrapolateLeft: 'clamp', extrapolateRight: 'clamp'}),
-          translate: interpolate(frame, [96, 111], ['24px 0px', '0px 0px'], {extrapolateLeft: 'clamp', extrapolateRight: 'clamp', easing: Easing.bezier(0.16, 1, 0.3, 1)}),
-        }}
-      >
-        <div style={{fontSize: 32, fontWeight: 700, color: '#ffc845', marginBottom: 12}}>Catálogos de PostgreSQL</div>
-        <div style={{fontFamily: 'Consolas, monospace', fontSize: 21, lineHeight: '32px', color: '#cdd6ea'}}>
-          pg_namespace · pg_class · pg_attribute<br />pg_attrdef · pg_index
-        </div>
-      </Interactive.Div>
-      <Interactive.Div
-        name="Flecha lee"
-        style={{
-          position: 'absolute', left: 1150, top: 290, fontFamily: 'Consolas, monospace', fontSize: 20, color: '#8a96b3',
-          opacity: interpolate(frame, [96, 108], [0, 1], {extrapolateLeft: 'clamp', extrapolateRight: 'clamp'}),
-        }}
-      >
-        lee ──▶
-      </Interactive.Div>
-      <Interactive.Div
-        name="Caja procedures"
-        style={{
-          position: 'absolute', left: 1260, top: 470, width: 600, border: '2px solid #3ddc84', borderRadius: 18, padding: '22px 26px', background: '#0b1226',
-          opacity: interpolate(frame, [138, 153], [0, 1], {extrapolateLeft: 'clamp', extrapolateRight: 'clamp'}),
-          translate: interpolate(frame, [138, 153], ['24px 0px', '0px 0px'], {extrapolateLeft: 'clamp', extrapolateRight: 'clamp', easing: Easing.bezier(0.16, 1, 0.3, 1)}),
-        }}
-      >
-        <div style={{fontSize: 32, fontWeight: 700, color: '#3ddc84', marginBottom: 12}}>Procedures generados</div>
-        <div style={{fontFamily: 'Consolas, monospace', fontSize: 21, lineHeight: '32px', color: '#cdd6ea'}}>
-          lab.&lt;tabla&gt;_insertar / _consultar<br />lab.&lt;tabla&gt;_actualizar / _eliminar<br />SECURITY INVOKER · sin EXECUTE a PUBLIC
-        </div>
-      </Interactive.Div>
-      <Interactive.Div
-        name="Flecha crea"
-        style={{
-          position: 'absolute', left: 1150, top: 560, fontFamily: 'Consolas, monospace', fontSize: 20, color: '#8a96b3',
-          opacity: interpolate(frame, [138, 150], [0, 1], {extrapolateLeft: 'clamp', extrapolateRight: 'clamp'}),
-        }}
-      >
-        crea ─▶
-      </Interactive.Div>
-      <Interactive.Div
-        name="Flecha GRANT"
-        style={{
-          position: 'absolute', left: 290, top: 690, fontFamily: 'Consolas, monospace', fontSize: 20, lineHeight: '28px', color: '#8a96b3',
-          opacity: interpolate(frame, [180, 192], [0, 1], {extrapolateLeft: 'clamp', extrapolateRight: 'clamp'}),
-        }}
-      >
-        │<br />│ GRANT / REVOKE<br />▼
-      </Interactive.Div>
-      <Interactive.Div
-        name="Caja roles"
-        style={{
-          position: 'absolute', left: 60, top: 820, width: 1800, border: '2px solid #ff5d6c', borderRadius: 18, padding: '18px 26px', background: '#0b1226',
-          opacity: interpolate(frame, [186, 201], [0, 1], {extrapolateLeft: 'clamp', extrapolateRight: 'clamp'}),
-          translate: interpolate(frame, [186, 201], ['0px 24px', '0px 0px'], {extrapolateLeft: 'clamp', extrapolateRight: 'clamp', easing: Easing.bezier(0.16, 1, 0.3, 1)}),
-        }}
-      >
-        <span style={{fontSize: 32, fontWeight: 700, color: '#ff5d6c'}}>Roles de PostgreSQL</span>
-        <span style={{fontFamily: 'Consolas, monospace', fontSize: 21, color: '#cdd6ea', marginLeft: 30}}>
-          crud_administrador · crud_supervisor · crud_vendedor — EXECUTE + permiso de tabla + USAGE del esquema
-        </span>
-      </Interactive.Div>
+      <RielProgreso name="Riel" premountFor={fps} actual="intro" />
+      <EncabezadoPaso name="Encabezado" premountFor={fps} etiqueta="Panorama" titulo="Cómo está construido" subtitulo="la generación vive en la base de datos" />
+      <Interactive.Svg name="Conectores" width={1920} height={1080} style={{position: 'absolute', left: 0, top: 0}}>
+        <g stroke={COLOR.tinta} strokeWidth={2} fill="none">
+          <path d="M 1100 365 L 1100 425" pathLength={1} strokeDasharray="1" strokeDashoffset={progresoTrazo(frame, 40)} />
+          <path d="M 900 565 L 900 600 L 710 600 L 710 625" pathLength={1} strokeDasharray="1" strokeDashoffset={progresoTrazo(frame, 80)} />
+          <path d="M 1300 565 L 1300 600 L 1490 600 L 1490 625" pathLength={1} strokeDasharray="1" strokeDashoffset={progresoTrazo(frame, 110)} />
+          <path d="M 1490 775 L 1490 835" pathLength={1} strokeDasharray="1" strokeDashoffset={progresoTrazo(frame, 150)} />
+        </g>
+        <g fill={COLOR.gris} fontFamily={FUENTE.mono} fontSize={18} style={{opacity: interpolate(frame, [40, 56], [0, 1], {extrapolateLeft: 'clamp', extrapolateRight: 'clamp'})}}>
+          <text x={1118} y={402}>SELECT crud_generator.generate_crud(…)</text>
+        </g>
+        <g fill={COLOR.gris} fontFamily={FUENTE.mono} fontSize={18} style={{opacity: interpolate(frame, [80, 96], [0, 1], {extrapolateLeft: 'clamp', extrapolateRight: 'clamp'})}}>
+          <text x={724} y={593}>lee</text>
+          <text x={1314} y={593}>crea</text>
+        </g>
+        <g fill={COLOR.gris} fontFamily={FUENTE.mono} fontSize={18} style={{opacity: interpolate(frame, [150, 166], [0, 1], {extrapolateLeft: 'clamp', extrapolateRight: 'clamp'})}}>
+          <text x={1508} y={812}>EXECUTE según la matriz</text>
+        </g>
+      </Interactive.Svg>
+      <Capa x={340} y={235} w={1520} h={130} color={COLOR.azul} rotulo="Interfaz y orquestación" titulo="Aplicación Python · crudgen" texto="conecta · asume crud_admin · elige esquema, tablas y operaciones · aplica GRANT / REVOKE · verifica" desde={8} />
+      <Capa x={340} y={425} w={1520} h={140} color={COLOR.tinta} rotulo="Lógica de generación" titulo="Extensión crud_generator 1.0 (SQL + PL/pgSQL)" texto="analyze_table(esquema, tabla) · generate_crud(esquema, tabla, operaciones, do_replace)" desde={52} />
+      <Capa x={340} y={625} w={740} h={150} color={COLOR.gris} rotulo="Metadatos" titulo="Catálogos del sistema" texto="pg_namespace · pg_class · pg_attribute · pg_attrdef · pg_index" desde={90} />
+      <Capa x={1120} y={625} w={740} h={150} color={COLOR.exito} rotulo="Resultado" titulo="Procedures generados" texto="lab.<tabla>_insertar / _consultar / _actualizar / _eliminar" desde={120} />
+      <Capa x={340} y={835} w={1520} h={120} color={COLOR.error} rotulo="Control de acceso" titulo="Roles de PostgreSQL" texto="crud_administrador · crud_supervisor · crud_vendedor — SECURITY INVOKER, sin EXECUTE para PUBLIC" desde={160} />
     </Fondo>
   );
 };

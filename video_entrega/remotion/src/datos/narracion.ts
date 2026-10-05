@@ -88,31 +88,31 @@ export const NARRACION: readonly Narracion[] = [
   {
     id: 'decision_1',
     archivo: 'voz/voz_decision_1.mp3',
-    texto: 'Primera decisión técnica: los procedimientos se ejecutan como security invoker. Cada rol necesita permiso de ejecución y, además, permiso sobre la tabla. Con security definer correrían con los privilegios del dueño; lo comprobamos con un experimento y lo descartamos.',
+    texto: 'Primer criterio de diseño: permisos de quien llama, no del dueño. Los procedimientos son security invoker, así que cada rol necesita permiso de ejecución y también permiso sobre la tabla. Con security definer correrían con los privilegios del dueño; lo comprobamos con un experimento y lo descartamos.',
   },
   {
     id: 'decision_2',
     archivo: 'voz/voz_decision_2.mp3',
-    texto: 'Segunda: Postgres le da permiso de ejecución público a todo procedimiento nuevo. La extensión lo revoca en ese mismo momento, para que solo la matriz de privilegios decida quién ejecuta.',
+    texto: 'Segundo criterio: nadie ejecuta por defecto. Postgres concede permiso de ejecución público a todo procedimiento nuevo; la extensión lo retira en ese mismo instante, y solo la matriz de privilegios decide quién ejecuta.',
   },
   {
     id: 'decision_3',
     archivo: 'voz/voz_decision_3.mp3',
-    texto: 'Tercera: el SQL dinámico nunca concatena valores. Identificadores y valores se escapan con las funciones de Postgres, y los parámetros se nombran por posición, así funcionan incluso columnas con espacios o con palabras reservadas.',
+    texto: 'Tercer criterio: nombres y valores siempre escapados. El SQL dinámico nunca concatena valores, y los parámetros se nombran por posición, así funcionan incluso columnas con espacios o con palabras reservadas.',
   },
   {
     id: 'decision_4',
     archivo: 'voz/voz_decision_4.mp3',
-    texto: 'Cuarta: el insertar respeta las columnas generadas. Las columnas identity se omiten, y las que tienen valor por defecto son opcionales: si llegan vacías, Postgres aplica su propio valor.',
+    texto: 'Cuarto criterio: el insertar deja trabajar a Postgres. Las columnas identity no se piden, y las que tienen valor por defecto son opcionales: si llegan vacías, se aplica el valor definido en la tabla.',
   },
   {
     id: 'decision_5',
     archivo: 'voz/voz_decision_5.mp3',
-    texto: 'Quinta: la regeneración es controlada. Si un procedimiento ya existe, se informa un conflicto y solo se reemplaza si se pide de forma explícita. Y la consulta busca por la clave primaria completa; si no encuentra la fila, responde con un error claro.',
+    texto: 'Quinto criterio: regenerar sin pisar nada. Si un procedimiento ya existe, se informa un conflicto y solo se reemplaza si se pide de forma explícita. Y la consulta busca por la clave primaria completa; si no encuentra la fila, responde con un error claro.',
   },
   {
     id: 'cierre',
     archivo: 'voz/voz_cierre.mp3',
-    texto: 'Una sola solución que funciona con cualquier tabla: una extensión de Postgres, una aplicación en Python y privilegios reales por rol. Gracias por su atención.',
+    texto: 'En resumen, cumplimos los diez puntos del enunciado: desde instalar la extensión hasta generar el CRUD de una tabla que no existía, con privilegios reales que Postgres hace cumplir. Gracias por su atención.',
   },
 ];

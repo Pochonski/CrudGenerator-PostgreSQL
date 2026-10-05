@@ -19,3 +19,6 @@ video_entrega/*.mp4
 .claude/skills/
 .claude/launch.json
 skills-lock.json
+
+# Paquete de entrega (se arma localmente y se sube aparte)
+Entrega_*.zip

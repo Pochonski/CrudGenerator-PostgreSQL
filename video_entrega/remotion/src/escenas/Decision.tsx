@@ -3,66 +3,74 @@ import {Audio} from '@remotion/media';
 import {Easing, Interactive, interpolate, staticFile, useCurrentFrame, useVideoConfig, type InteractivitySchema} from 'remotion';
 import {EncabezadoPaso} from '../componentes/EncabezadoPaso.tsx';
 import {Fondo} from '../componentes/Fondo.tsx';
+import {RielProgreso} from '../componentes/RielProgreso.tsx';
+import {COLOR, FUENTE} from '../tema.ts';
 
 type DecisionProps = {
+  readonly numero: string;
   readonly titulo: string;
   readonly texto: string;
   readonly codigo: string;
-  readonly color: string;
-  readonly pagina: string;
   readonly voz: string; // relativo a public/
   readonly style?: React.CSSProperties;
 };
 
-const DecisionInner: React.FC<DecisionProps> = ({titulo, texto, codigo, color, pagina, voz, style}) => {
+// Un criterio de diseño: numeral serif grande, explicación y fragmento de código.
+const DecisionInner: React.FC<DecisionProps> = ({numero, titulo, texto, codigo, voz, style}) => {
   const frame = useCurrentFrame();
   const {fps} = useVideoConfig();
 
   return (
-    <Interactive.Div name="Decisión técnica" style={{position: 'absolute', inset: 0, ...style}}>
+    <Interactive.Div name="Criterio de diseño" style={{position: 'absolute', inset: 0, ...style}}>
       <Fondo>
         <Audio name="Voz" src={staticFile(voz)} premountFor={fps} />
-        <EncabezadoPaso name="Encabezado" insignia="★" titulo="Decisiones técnicas" subtitulo="Por qué está diseñado así" />
-        <div style={{position: 'absolute', left: 140, right: 140, top: 300}}>
+        <RielProgreso name="Riel" actual="criterios" />
+        <EncabezadoPaso name="Encabezado" etiqueta="Criterios de diseño" titulo="Decisiones que sostienen la seguridad" subtitulo="y la generalidad" />
+        <div
+          style={{
+            position: 'absolute', left: 340, top: 300, width: 300, fontFamily: FUENTE.serif, fontSize: 220, lineHeight: 1, color: COLOR.azul,
+            opacity: interpolate(frame, [4, 18], [0, 1], {extrapolateLeft: 'clamp', extrapolateRight: 'clamp'}),
+          }}
+        >
+          {numero}
+        </div>
+        <div style={{position: 'absolute', left: 700, top: 310, width: 1160}}>
           <div
             style={{
-              fontSize: 70, fontWeight: 800, lineHeight: 1.1, borderLeft: `10px solid ${color}`, paddingLeft: 34,
-              opacity: interpolate(frame, [6, 21], [0, 1], {extrapolateLeft: 'clamp', extrapolateRight: 'clamp'}),
-              translate: interpolate(frame, [6, 21], ['0px 24px', '0px 0px'], {extrapolateLeft: 'clamp', extrapolateRight: 'clamp', easing: Easing.bezier(0.16, 1, 0.3, 1)}),
+              fontFamily: FUENTE.serif, fontSize: 60, lineHeight: 1.12,
+              opacity: interpolate(frame, [8, 22], [0, 1], {extrapolateLeft: 'clamp', extrapolateRight: 'clamp'}),
+              translate: interpolate(frame, [8, 22], ['0px 18px', '0px 0px'], {extrapolateLeft: 'clamp', extrapolateRight: 'clamp', easing: Easing.bezier(0.16, 1, 0.3, 1)}),
             }}
           >
             {titulo}
           </div>
           <div
             style={{
-              fontSize: 38, color: '#cdd6ea', margin: '34px 0 0 44px', lineHeight: 1.4,
-              opacity: interpolate(frame, [18, 33], [0, 1], {extrapolateLeft: 'clamp', extrapolateRight: 'clamp'}),
+              fontSize: 32, color: COLOR.tinta, marginTop: 30, lineHeight: 1.5,
+              opacity: interpolate(frame, [20, 34], [0, 1], {extrapolateLeft: 'clamp', extrapolateRight: 'clamp'}),
             }}
           >
             {texto}
           </div>
           <div
             style={{
-              display: 'inline-block', margin: '44px 0 0 44px', fontFamily: '"Cascadia Mono", Consolas, monospace', fontSize: 30,
-              padding: '18px 28px', border: `2px solid ${color}`, borderRadius: 14, color,
-              opacity: interpolate(frame, [33, 48], [0, 1], {extrapolateLeft: 'clamp', extrapolateRight: 'clamp'}),
+              marginTop: 40, fontFamily: FUENTE.mono, fontSize: 26, background: COLOR.codigoFondo, borderRadius: 6, padding: '20px 26px', color: COLOR.tinta,
+              opacity: interpolate(frame, [32, 46], [0, 1], {extrapolateLeft: 'clamp', extrapolateRight: 'clamp'}),
             }}
           >
             {codigo}
           </div>
         </div>
-        <div style={{position: 'absolute', right: 70, bottom: 50, color: '#8a96b3', fontSize: 28}}>{pagina}</div>
       </Fondo>
     </Interactive.Div>
   );
 };
 
 const decisionSchema = {
+  numero: {type: 'text-content', default: '01', description: 'Numeral'},
   titulo: {type: 'text-content', default: '', description: 'Título'},
   texto: {type: 'text-content', default: '', description: 'Explicación'},
   codigo: {type: 'text-content', default: '', description: 'Fragmento de código'},
-  color: {type: 'color', default: '#4ea8ff', description: 'Color de acento'},
-  pagina: {type: 'text-content', default: '1 / 5', description: 'Página'},
 } as const satisfies InteractivitySchema;
 
 export const Decision = Interactive.withSchema({

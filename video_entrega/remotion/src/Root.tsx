@@ -1,7 +1,8 @@
 import {getAudioDurationInSeconds} from '@remotion/media-utils';
 import {Composition, Folder, staticFile, type CalculateMetadataFunction} from 'remotion';
 import {EncabezadoPaso} from './componentes/EncabezadoPaso.tsx';
-import {Leyenda} from './componentes/Leyenda.tsx';
+import {NotaAlPie} from './componentes/NotaAlPie.tsx';
+import {RielProgreso} from './componentes/RielProgreso.tsx';
 import {NARRACION} from './datos/narracion.ts';
 import {Arquitectura} from './escenas/Arquitectura.tsx';
 import {Cierre} from './escenas/Cierre.tsx';
@@ -78,11 +79,10 @@ export const RemotionRoot: React.FC = () => {
           durationInFrames={195}
           calculateMetadata={async ({props}) => ({durationInFrames: await cuadrosDeVoz(props.voz)})}
           defaultProps={{
-            titulo: 'SECURITY INVOKER + doble llave',
-            texto: 'El rol necesita EXECUTE sobre el procedure y el permiso sobre la tabla. Con DEFINER el procedure se ejecutaría con los privilegios del dueño; lo comprobamos en un experimento y lo descartamos.',
+            numero: '01',
+            titulo: 'Permisos de quien llama, no del dueño',
+            texto: 'Los procedures son SECURITY INVOKER: el rol necesita EXECUTE y además permiso sobre la tabla. Con DEFINER correrían con los privilegios del dueño; un experimento lo confirmó y lo descartamos.',
             codigo: 'CREATE PROCEDURE … SECURITY INVOKER SET search_path = lab, pg_temp',
-            color: '#4ea8ff',
-            pagina: '1 / 5',
             voz: 'voz/voz_decision_1.mp3',
           }}
         />
@@ -96,17 +96,18 @@ export const RemotionRoot: React.FC = () => {
           height={1080}
           fps={30}
           durationInFrames={60}
-          defaultProps={{insignia: '1', titulo: 'Instalación de la extensión', subtitulo: 'CREATE EXTENSION en PostgreSQL 18'}}
+          defaultProps={{etiqueta: 'Paso 1', titulo: 'Instalar la extensión', subtitulo: 'CREATE EXTENSION en PostgreSQL 18'}}
         />
         <Composition
-          id="Leyenda"
-          component={Leyenda}
+          id="NotaAlPie"
+          component={NotaAlPie}
           width={1920}
           height={1080}
           fps={30}
           durationInFrames={60}
-          defaultProps={{children: 'crud_generator 1.0 queda registrada en su propio esquema', color: '#3ddc84'}}
+          defaultProps={{children: 'La extensión queda registrada en la versión 1.0, dentro de su propio esquema.'}}
         />
+        <Composition id="RielProgreso" component={RielProgreso} width={1920} height={1080} fps={30} durationInFrames={60} defaultProps={{actual: '6'}} />
       </Folder>
     </>
   );

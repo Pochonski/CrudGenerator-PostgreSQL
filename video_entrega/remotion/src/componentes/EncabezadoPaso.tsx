@@ -1,60 +1,48 @@
 import type React from 'react';
 import {Easing, Interactive, interpolate, useCurrentFrame, type InteractivitySchema} from 'remotion';
+import {COLOR, FUENTE, LAYOUT} from '../tema.ts';
 
 type EncabezadoPasoProps = {
-  readonly insignia: string;
+  readonly etiqueta: string;
   readonly titulo: string;
   readonly subtitulo: string;
   readonly style?: React.CSSProperties;
 };
 
-const EncabezadoPasoInner: React.FC<EncabezadoPasoProps> = ({insignia, titulo, subtitulo, style}) => {
+// Etiqueta en versalitas + título serif + regla que se dibuja.
+const EncabezadoPasoInner: React.FC<EncabezadoPasoProps> = ({etiqueta, titulo, subtitulo, style}) => {
   const frame = useCurrentFrame();
 
   return (
     <Interactive.Div
       name="Encabezado"
       style={{
-        position: 'absolute',
-        left: 60,
-        top: 48,
-        display: 'flex',
-        alignItems: 'center',
-        gap: 26,
-        opacity: interpolate(frame, [0, 15], [0, 1], {extrapolateLeft: 'clamp', extrapolateRight: 'clamp'}),
-        translate: interpolate(frame, [0, 15], ['-30px 0px', '0px 0px'], {
-          extrapolateLeft: 'clamp',
-          extrapolateRight: 'clamp',
-          easing: Easing.bezier(0.16, 1, 0.3, 1),
-        }),
+        position: 'absolute', left: LAYOUT.contenidoX, top: 84, width: LAYOUT.contenidoAncho,
+        opacity: interpolate(frame, [0, 12], [0, 1], {extrapolateLeft: 'clamp', extrapolateRight: 'clamp'}),
         ...style,
       }}
     >
+      <div style={{fontSize: 20, letterSpacing: 4, textTransform: 'uppercase', color: COLOR.azul, fontWeight: 700}}>{etiqueta}</div>
+      <div style={{display: 'flex', alignItems: 'baseline', gap: 28, marginTop: 6}}>
+        <span style={{fontFamily: FUENTE.serif, fontSize: 54, color: COLOR.tinta}}>{titulo}</span>
+        <span style={{fontSize: 24, color: COLOR.gris, fontStyle: 'italic'}}>{subtitulo}</span>
+      </div>
       <div
         style={{
-          minWidth: 92, height: 92, padding: '0 18px', borderRadius: 20, display: 'flex', alignItems: 'center',
-          justifyContent: 'center', background: 'linear-gradient(135deg, #3aa0ff, #8b6bff)', fontWeight: 800,
-          fontSize: 44, color: '#fff', boxShadow: '0 10px 30px #3a7bff44',
-          scale: interpolate(frame, [0, 18], [0.6, 1], {
+          height: 2, background: COLOR.tinta, marginTop: 14,
+          width: interpolate(frame, [4, 30], ['0%', '100%'], {
             extrapolateLeft: 'clamp',
             extrapolateRight: 'clamp',
-            easing: Easing.spring({damping: 12}),
-            output: 'perceptual-scale',
+            easing: Easing.bezier(0.65, 0, 0.35, 1),
           }),
         }}
-      >
-        {insignia}
-      </div>
-      <div>
-        <div style={{fontSize: 56, fontWeight: 800, letterSpacing: -0.5, lineHeight: 1.05, color: '#e6ebf5'}}>{titulo}</div>
-        <div style={{fontSize: 28, color: '#8a96b3', marginTop: 6}}>{subtitulo}</div>
-      </div>
+      />
     </Interactive.Div>
   );
 };
 
 const encabezadoSchema = {
-  insignia: {type: 'text-content', default: '1', description: 'Número de paso'},
+  etiqueta: {type: 'text-content', default: 'Paso 1', description: 'Etiqueta (p. ej. "Paso 6")'},
   titulo: {type: 'text-content', default: '', description: 'Título'},
   subtitulo: {type: 'text-content', default: '', description: 'Subtítulo'},
 } as const satisfies InteractivitySchema;

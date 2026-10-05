@@ -1,5 +1,5 @@
 import {linearTiming, TransitionSeries} from '@remotion/transitions';
-import {fade} from '@remotion/transitions/fade';
+import {slide} from '@remotion/transitions/slide';
 import {useVideoConfig} from 'remotion';
 import {Arquitectura} from './escenas/Arquitectura.tsx';
 import {Cierre} from './escenas/Cierre.tsx';
@@ -33,118 +33,113 @@ export const VideoDemo: React.FC<VideoDemoProps> = ({duraciones}) => {
       <TransitionSeries.Sequence name="Portada" durationInFrames={duraciones[0]} premountFor={fps}>
         <Portada />
       </TransitionSeries.Sequence>
-      <TransitionSeries.Transition presentation={fade()} timing={linearTiming({durationInFrames: 12})} />
+      <TransitionSeries.Transition presentation={slide({direction: 'from-right'})} timing={linearTiming({durationInFrames: 12})} />
       <TransitionSeries.Sequence name="Arquitectura" durationInFrames={duraciones[1]} premountFor={fps}>
         <Arquitectura />
       </TransitionSeries.Sequence>
-      <TransitionSeries.Transition presentation={fade()} timing={linearTiming({durationInFrames: 12})} />
+      <TransitionSeries.Transition presentation={slide({direction: 'from-right'})} timing={linearTiming({durationInFrames: 12})} />
       <TransitionSeries.Sequence name="1 · Instalación" durationInFrames={duraciones[2]} premountFor={fps}>
         <Paso1Instalacion />
       </TransitionSeries.Sequence>
-      <TransitionSeries.Transition presentation={fade()} timing={linearTiming({durationInFrames: 12})} />
+      <TransitionSeries.Transition presentation={slide({direction: 'from-right'})} timing={linearTiming({durationInFrames: 12})} />
       <TransitionSeries.Sequence name="2-3 · Conexión" durationInFrames={duraciones[3]} premountFor={fps}>
         <Paso23Conexion />
       </TransitionSeries.Sequence>
-      <TransitionSeries.Transition presentation={fade()} timing={linearTiming({durationInFrames: 12})} />
+      <TransitionSeries.Transition presentation={slide({direction: 'from-right'})} timing={linearTiming({durationInFrames: 12})} />
       <TransitionSeries.Sequence name="4-5 · Selección" durationInFrames={duraciones[4]} premountFor={fps}>
         <Paso45Seleccion />
       </TransitionSeries.Sequence>
-      <TransitionSeries.Transition presentation={fade()} timing={linearTiming({durationInFrames: 12})} />
+      <TransitionSeries.Transition presentation={slide({direction: 'from-right'})} timing={linearTiming({durationInFrames: 12})} />
       <TransitionSeries.Sequence name="6 · Generación" durationInFrames={duraciones[5]} premountFor={fps}>
         <Paso6Generacion />
       </TransitionSeries.Sequence>
-      <TransitionSeries.Transition presentation={fade()} timing={linearTiming({durationInFrames: 12})} />
+      <TransitionSeries.Transition presentation={slide({direction: 'from-right'})} timing={linearTiming({durationInFrames: 12})} />
       <TransitionSeries.Sequence name="6 · PK compuesta e IDENTITY" durationInFrames={duraciones[6]} premountFor={fps}>
         <Paso6Especiales />
       </TransitionSeries.Sequence>
-      <TransitionSeries.Transition presentation={fade()} timing={linearTiming({durationInFrames: 12})} />
+      <TransitionSeries.Transition presentation={slide({direction: 'from-right'})} timing={linearTiming({durationInFrames: 12})} />
       <TransitionSeries.Sequence name="7 · Ejecución" durationInFrames={duraciones[7]} premountFor={fps}>
         <Paso7Ejecucion />
       </TransitionSeries.Sequence>
-      <TransitionSeries.Transition presentation={fade()} timing={linearTiming({durationInFrames: 12})} />
+      <TransitionSeries.Transition presentation={slide({direction: 'from-right'})} timing={linearTiming({durationInFrames: 12})} />
       <TransitionSeries.Sequence name="8 · Privilegios" durationInFrames={duraciones[8]} premountFor={fps}>
         <Paso8Privilegios />
       </TransitionSeries.Sequence>
-      <TransitionSeries.Transition presentation={fade()} timing={linearTiming({durationInFrames: 12})} />
+      <TransitionSeries.Transition presentation={slide({direction: 'from-right'})} timing={linearTiming({durationInFrames: 12})} />
       <TransitionSeries.Sequence name="8 · Verificación" durationInFrames={duraciones[9]} premountFor={fps}>
         <Paso8Verificacion />
       </TransitionSeries.Sequence>
-      <TransitionSeries.Transition presentation={fade()} timing={linearTiming({durationInFrames: 12})} />
+      <TransitionSeries.Transition presentation={slide({direction: 'from-right'})} timing={linearTiming({durationInFrames: 12})} />
       <TransitionSeries.Sequence name="9 · Validación por rol" durationInFrames={duraciones[10]} premountFor={fps}>
         <Paso9Validacion />
       </TransitionSeries.Sequence>
-      <TransitionSeries.Transition presentation={fade()} timing={linearTiming({durationInFrames: 12})} />
+      <TransitionSeries.Transition presentation={slide({direction: 'from-right'})} timing={linearTiming({durationInFrames: 12})} />
       <TransitionSeries.Sequence name="10 · Tabla nueva: creación" durationInFrames={duraciones[11]} premountFor={fps}>
         <Paso10Creacion />
       </TransitionSeries.Sequence>
-      <TransitionSeries.Transition presentation={fade()} timing={linearTiming({durationInFrames: 12})} />
+      <TransitionSeries.Transition presentation={slide({direction: 'from-right'})} timing={linearTiming({durationInFrames: 12})} />
       <TransitionSeries.Sequence name="10 · Tabla nueva: generación" durationInFrames={duraciones[12]} premountFor={fps}>
         <Paso10Generacion />
       </TransitionSeries.Sequence>
-      <TransitionSeries.Transition presentation={fade()} timing={linearTiming({durationInFrames: 12})} />
+      <TransitionSeries.Transition presentation={slide({direction: 'from-right'})} timing={linearTiming({durationInFrames: 12})} />
       <TransitionSeries.Sequence name="10 · Tabla nueva: uso" durationInFrames={duraciones[13]} premountFor={fps}>
         <Paso10Uso />
       </TransitionSeries.Sequence>
-      <TransitionSeries.Transition presentation={fade()} timing={linearTiming({durationInFrames: 12})} />
+      <TransitionSeries.Transition presentation={slide({direction: 'from-right'})} timing={linearTiming({durationInFrames: 12})} />
       <TransitionSeries.Sequence name="Pruebas" durationInFrames={duraciones[14]} premountFor={fps}>
         <Pruebas />
       </TransitionSeries.Sequence>
-      <TransitionSeries.Transition presentation={fade()} timing={linearTiming({durationInFrames: 12})} />
-      <TransitionSeries.Sequence name="Decisión 1" durationInFrames={duraciones[15]} premountFor={fps}>
+      <TransitionSeries.Transition presentation={slide({direction: 'from-right'})} timing={linearTiming({durationInFrames: 12})} />
+      <TransitionSeries.Sequence name="Criterio 1" durationInFrames={duraciones[15]} premountFor={fps}>
         <Decision
-          titulo="SECURITY INVOKER + doble llave"
-          texto="El rol necesita EXECUTE sobre el procedure y el permiso sobre la tabla. Con DEFINER el procedure se ejecutaría con los privilegios del dueño; lo comprobamos en un experimento y lo descartamos."
+          numero="01"
+          titulo="Permisos de quien llama, no del dueño"
+          texto="Los procedures son SECURITY INVOKER: el rol necesita EXECUTE y además permiso sobre la tabla. Con DEFINER correrían con los privilegios del dueño; un experimento lo confirmó y lo descartamos."
           codigo="CREATE PROCEDURE … SECURITY INVOKER SET search_path = lab, pg_temp"
-          color="#4ea8ff"
-          pagina="1 / 5"
           voz="voz/voz_decision_1.mp3"
         />
       </TransitionSeries.Sequence>
-      <TransitionSeries.Transition presentation={fade()} timing={linearTiming({durationInFrames: 12})} />
-      <TransitionSeries.Sequence name="Decisión 2" durationInFrames={duraciones[16]} premountFor={fps}>
+      <TransitionSeries.Transition presentation={slide({direction: 'from-right'})} timing={linearTiming({durationInFrames: 12})} />
+      <TransitionSeries.Sequence name="Criterio 2" durationInFrames={duraciones[16]} premountFor={fps}>
         <Decision
-          titulo="Sin EXECUTE para PUBLIC"
-          texto="PostgreSQL otorga EXECUTE a PUBLIC al crear un procedure. La extensión lo revoca en el mismo momento; solo la matriz decide quién ejecuta."
+          numero="02"
+          titulo="Nadie ejecuta por defecto"
+          texto="PostgreSQL concede EXECUTE a PUBLIC al crear un procedure. La extensión lo retira en el mismo instante; solo la matriz decide quién ejecuta."
           codigo="REVOKE EXECUTE ON PROCEDURE … FROM PUBLIC"
-          color="#3ddc84"
-          pagina="2 / 5"
           voz="voz/voz_decision_2.mp3"
         />
       </TransitionSeries.Sequence>
-      <TransitionSeries.Transition presentation={fade()} timing={linearTiming({durationInFrames: 12})} />
-      <TransitionSeries.Sequence name="Decisión 3" durationInFrames={duraciones[17]} premountFor={fps}>
+      <TransitionSeries.Transition presentation={slide({direction: 'from-right'})} timing={linearTiming({durationInFrames: 12})} />
+      <TransitionSeries.Sequence name="Criterio 3" durationInFrames={duraciones[17]} premountFor={fps}>
         <Decision
-          titulo="SQL dinámico sin concatenar valores"
-          texto="Identificadores con %I / quote_ident y valores con %L / quote_nullable. Los parámetros se llaman p_<posición>, así funcionan columnas con espacios o palabras reservadas."
+          numero="03"
+          titulo="Nombres y valores siempre escapados"
+          texto="El SQL dinámico usa %I / quote_ident para nombres y %L / quote_nullable para valores. Los parámetros se nombran por posición (p_1, p_2…), así sirven columnas con espacios o palabras reservadas."
           codigo="format('INSERT INTO %I.%I (%s) VALUES (%s)', …)"
-          color="#ffc845"
-          pagina="3 / 5"
           voz="voz/voz_decision_3.mp3"
         />
       </TransitionSeries.Sequence>
-      <TransitionSeries.Transition presentation={fade()} timing={linearTiming({durationInFrames: 12})} />
-      <TransitionSeries.Sequence name="Decisión 4" durationInFrames={duraciones[18]} premountFor={fps}>
+      <TransitionSeries.Transition presentation={slide({direction: 'from-right'})} timing={linearTiming({durationInFrames: 12})} />
+      <TransitionSeries.Sequence name="Criterio 4" durationInFrames={duraciones[18]} premountFor={fps}>
         <Decision
-          titulo="INSERT que respeta IDENTITY y DEFAULT"
-          texto="Las columnas GENERATED ALWAYS se omiten; las que tienen DEFAULT son opcionales: si llegan en NULL, PostgreSQL aplica su propio valor."
+          numero="04"
+          titulo="El INSERT deja trabajar a PostgreSQL"
+          texto="Las columnas GENERATED ALWAYS no se piden; las que tienen DEFAULT son opcionales y, si llegan en NULL, se aplica el valor definido en la tabla."
           codigo="CALL lab.ticket_insertar();   -- id y fecha los pone PostgreSQL"
-          color="#8b7bff"
-          pagina="4 / 5"
           voz="voz/voz_decision_4.mp3"
         />
       </TransitionSeries.Sequence>
-      <TransitionSeries.Transition presentation={fade()} timing={linearTiming({durationInFrames: 12})} />
-      <TransitionSeries.Sequence name="Decisión 5" durationInFrames={duraciones[19]} premountFor={fps}>
+      <TransitionSeries.Transition presentation={slide({direction: 'from-right'})} timing={linearTiming({durationInFrames: 12})} />
+      <TransitionSeries.Sequence name="Criterio 5" durationInFrames={duraciones[19]} premountFor={fps}>
         <Decision
-          titulo="Regeneración controlada y READ por PK"
-          texto="Si el procedure ya existe se informa procedure_conflict y solo se reemplaza con do_replace explícito. READ busca por la PK completa y, si no hay fila, responde P0002."
+          numero="05"
+          titulo="Regenerar sin pisar nada"
+          texto="Si el procedure ya existe se informa procedure_conflict y solo se reemplaza con do_replace explícito. READ busca por la PK completa y responde P0002 si no hay fila."
           codigo="generate_crud(esquema, tabla, operaciones, do_replace => false)"
-          color="#ff5d6c"
-          pagina="5 / 5"
           voz="voz/voz_decision_5.mp3"
         />
       </TransitionSeries.Sequence>
-      <TransitionSeries.Transition presentation={fade()} timing={linearTiming({durationInFrames: 12})} />
+      <TransitionSeries.Transition presentation={slide({direction: 'from-right'})} timing={linearTiming({durationInFrames: 12})} />
       <TransitionSeries.Sequence name="Cierre" durationInFrames={duraciones[20]} premountFor={fps}>
         <Cierre />
       </TransitionSeries.Sequence>

@@ -2,7 +2,8 @@ import {Audio} from '@remotion/media';
 import {staticFile, useVideoConfig} from 'remotion';
 import {EncabezadoPaso} from '../componentes/EncabezadoPaso.tsx';
 import {Fondo} from '../componentes/Fondo.tsx';
-import {Leyenda} from '../componentes/Leyenda.tsx';
+import {NotaAlPie} from '../componentes/NotaAlPie.tsx';
+import {RielProgreso} from '../componentes/RielProgreso.tsx';
 import {Terminal} from '../componentes/Terminal.tsx';
 import {PASO10_CREACION} from '../datos/capturas.ts';
 
@@ -12,18 +13,20 @@ export const Paso10Creacion: React.FC = () => {
   return (
     <Fondo>
       <Audio name="Voz" src={staticFile('voz/voz_paso_10_creacion.mp3')} premountFor={fps} />
-      <EncabezadoPaso name="Encabezado" premountFor={fps} insignia="10" titulo="Una tabla que no existía durante el desarrollo" subtitulo="Se crea ahora, sin tocar Python ni la extensión" />
+      <RielProgreso name="Riel" premountFor={fps} actual="10" />
+      <EncabezadoPaso name="Encabezado" premountFor={fps} etiqueta="Paso 10" titulo="Prueba de generalidad" subtitulo="una tabla creada después de terminar el código" />
       <Terminal
         name="Terminal"
         premountFor={fps}
         titulo="psql — devdb"
+        otraPestana="PowerShell"
         tamanoFuente={23}
         pasos={PASO10_CREACION}
-        style={{left: 60, top: 180, width: 1800, height: 520}}
+        style={{left: 340, top: 220, width: 1520, height: 520}}
       />
-      <Leyenda name="Leyenda" from={36} premountFor={fps} color="#3ddc84">
-        Tabla nueva: PK simple + DEFAULT now()
-      </Leyenda>
+      <NotaAlPie name="Nota" from={30} premountFor={fps}>
+        La tabla nace ahora; ni Python ni la extensión se modifican.
+      </NotaAlPie>
     </Fondo>
   );
 };

@@ -2,7 +2,8 @@ import {Audio} from '@remotion/media';
 import {staticFile, useVideoConfig} from 'remotion';
 import {EncabezadoPaso} from '../componentes/EncabezadoPaso.tsx';
 import {Fondo} from '../componentes/Fondo.tsx';
-import {Leyenda} from '../componentes/Leyenda.tsx';
+import {NotaAlPie} from '../componentes/NotaAlPie.tsx';
+import {RielProgreso} from '../componentes/RielProgreso.tsx';
 import {Terminal} from '../componentes/Terminal.tsx';
 import {PASO10_GENERACION} from '../datos/capturas.ts';
 
@@ -12,18 +13,20 @@ export const Paso10Generacion: React.FC = () => {
   return (
     <Fondo>
       <Audio name="Voz" src={staticFile('voz/voz_paso_10_generacion.mp3')} premountFor={fps} />
-      <EncabezadoPaso name="Encabezado" premountFor={fps} insignia="10" titulo="Una tabla que no existía durante el desarrollo" subtitulo="crudgen la descubre en el catálogo y genera su CRUD" />
+      <RielProgreso name="Riel" premountFor={fps} actual="10" />
+      <EncabezadoPaso name="Encabezado" premountFor={fps} etiqueta="Paso 10" titulo="Prueba de generalidad" subtitulo="crudgen la encuentra en el catálogo" />
       <Terminal
         name="Terminal"
         premountFor={fps}
-        titulo="crudgen — lab.tabla_video_nueva"
+        titulo="PowerShell — crudgen"
+        otraPestana="psql — devdb"
         tamanoFuente={23}
         pasos={PASO10_GENERACION}
-        style={{left: 60, top: 180, width: 1800, height: 780}}
+        style={{left: 340, top: 220, width: 1520, height: 740}}
       />
-      <Leyenda name="Leyenda" from={36} premountFor={fps} color="#3ddc84">
-        Sin cambiar una línea de código: 4 × success y matriz aplicada
-      </Leyenda>
+      <NotaAlPie name="Nota" from={30} premountFor={fps}>
+        Cuatro procedures nuevos y permisos para administrador y vendedor.
+      </NotaAlPie>
     </Fondo>
   );
 };

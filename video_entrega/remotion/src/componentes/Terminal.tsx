@@ -2,9 +2,11 @@ import type React from 'react';
 import {useMemo} from 'react';
 import {Interactive, useCurrentFrame, useVideoConfig, type InteractivitySchema} from 'remotion';
 import {construirLineaDeTiempo, type Linea, type Paso} from '../datos/linea-de-tiempo.ts';
+import {COLOR, FUENTE} from '../tema.ts';
 
 type TerminalProps = {
-  readonly titulo: string;
+  readonly titulo: string; // pestaña activa
+  readonly otraPestana?: string; // pestaña inactiva opcional, como en Windows Terminal
   readonly tamanoFuente: number;
   readonly pasos: readonly Paso[];
   readonly cursor?: boolean;
@@ -16,30 +18,30 @@ const escapar = (s: string) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').re
 // Colorea la salida real sin alterar su texto.
 const colorear = (s: string) => {
   const h = escapar(s);
-  if (/^ERROR/.test(s)) return `<span style="color:#ff5d6c">${h}</span>`;
-  if (/^(CONTEXTO|DETALLE)/.test(s)) return `<span style="color:#5c6888">${h}</span>`;
+  if (/^ERROR/.test(s)) return `<span style="color:${COLOR.error};font-weight:600">${h}</span>`;
+  if (/^(CONTEXTO|DETALLE)/.test(s)) return `<span style="color:${COLOR.grisClaro}">${h}</span>`;
   return h
-    .replace(/: success/g, ': <span style="color:#3ddc84">success</span>')
-    .replace(/^- OK /, '- <span style="color:#3ddc84">OK</span> ')
-    .replace(/denegado \(42501\)/g, '<span style="color:#ffc845">denegado (42501)</span>')
-    .replace(/deshabilitado/g, '<span style="color:#ffc845">deshabilitado</span>')
-    .replace(/(?<!des)habilitado/g, '<span style="color:#3ddc84">habilitado</span>')
-    .replace(/^(Conexión exitosa)$/, '<span style="color:#3ddc84">$1</span>')
-    .replace(/(\d+ passed)/, '<span style="color:#3ddc84">$1</span>')
-    .replace(/(0 FAIL\/FALLO)/, '<span style="color:#3ddc84">$1</span>');
+    .replace(/: success/g, `: <span style="color:${COLOR.exito};font-weight:700">success</span>`)
+    .replace(/^- OK /, `- <span style="color:${COLOR.exito};font-weight:700">OK</span> `)
+    .replace(/denegado \(42501\)/g, `<span style="color:${COLOR.error};font-weight:700">denegado (42501)</span>`)
+    .replace(/deshabilitado/g, `<span style="color:${COLOR.error};font-weight:700">deshabilitado</span>`)
+    .replace(/(?<!des)habilitado/g, `<span style="color:${COLOR.exito};font-weight:700">habilitado</span>`)
+    .replace(/^(Conexión exitosa)$/, `<span style="color:${COLOR.exito};font-weight:700">$1</span>`)
+    .replace(/(\d+ passed)/, `<span style="color:${COLOR.exito};font-weight:700">$1</span>`)
+    .replace(/(0 FAIL\/FALLO)/, `<span style="color:${COLOR.exito};font-weight:700">$1</span>`);
 };
 
 const ESTILO_RESALTE: Record<string, React.CSSProperties> = {
-  hl: {background: '#1a2a55', boxShadow: 'inset 4px 0 0 #4ea8ff', margin: '0 -24px', padding: '0 20px'},
-  hly: {background: '#3a2f0e', boxShadow: 'inset 4px 0 0 #ffc845', margin: '0 -24px', padding: '0 20px'},
-  dim: {color: '#5c6888'},
+  hl: {background: '#E3ECF5', boxShadow: `inset 4px 0 0 ${COLOR.azul}`, margin: '0 -24px', padding: '0 20px'},
+  hly: {background: COLOR.resaltado, boxShadow: `inset 4px 0 0 ${COLOR.tinta}`, margin: '0 -24px', padding: '0 20px'},
+  dim: {color: COLOR.grisClaro},
 };
 
 const Cursor = () => (
-  <span style={{display: 'inline-block', width: '0.52em', height: '1.1em', background: '#4ea8ff', verticalAlign: '-0.18em', marginLeft: 2}} />
+  <span style={{display: 'inline-block', width: '0.52em', height: '1.1em', background: COLOR.tinta, verticalAlign: '-0.18em', marginLeft: 2}} />
 );
 
-const TerminalInner: React.FC<TerminalProps> = ({titulo, tamanoFuente, pasos, cursor = true, style}) => {
+const TerminalInner: React.FC<TerminalProps> = ({titulo, otraPestana, tamanoFuente, pasos, cursor = true, style}) => {
   const frame = useCurrentFrame();
   const {fps, durationInFrames} = useVideoConfig();
   const {eventos, duracion} = useMemo(() => construirLineaDeTiempo(pasos), [pasos]);
@@ -73,36 +75,37 @@ const TerminalInner: React.FC<TerminalProps> = ({titulo, tamanoFuente, pasos, cu
       name="Ventana de terminal"
       style={{
         position: 'absolute',
-        background: '#070b16',
-        border: '1px solid #1e2a4a',
-        borderRadius: 16,
+        background: COLOR.blanco,
+        border: `1px solid ${COLOR.linea}`,
+        borderRadius: 6,
         overflow: 'hidden',
-        boxShadow: '0 30px 80px #0008',
+        boxShadow: '0 2px 0 #00000008',
         ...style,
       }}
     >
-      <div style={{height: 44, display: 'flex', alignItems: 'center', gap: 10, padding: '0 18px', background: '#0c1222', borderBottom: '1px solid #1e2a4a', fontSize: 20, color: '#8a96b3'}}>
-        <span style={{width: 14, height: 14, borderRadius: 7, background: '#ff5f57'}} />
-        <span style={{width: 14, height: 14, borderRadius: 7, background: '#febc2e'}} />
-        <span style={{width: 14, height: 14, borderRadius: 7, background: '#28c840'}} />
-        <span style={{marginLeft: 12}}>{titulo}</span>
+      <div style={{height: 44, display: 'flex', alignItems: 'flex-end', gap: 4, padding: '0 12px', background: COLOR.codigoFondo, borderBottom: `1px solid ${COLOR.linea}`, fontSize: 18}}>
+        <span style={{background: COLOR.blanco, border: `1px solid ${COLOR.linea}`, borderBottom: 'none', borderRadius: '6px 6px 0 0', padding: '8px 18px', color: COLOR.tinta, fontWeight: 600, marginBottom: -1, boxShadow: `inset 0 3px 0 ${COLOR.azul}`}}>
+          {titulo}
+        </span>
+        {otraPestana ? <span style={{padding: '8px 18px', color: COLOR.gris}}>{otraPestana}</span> : null}
+        <span style={{padding: '8px 12px', color: COLOR.grisClaro}}>+</span>
       </div>
       <div
         style={{
           position: 'absolute', top: 44, left: 0, right: 0, bottom: 0, padding: '16px 24px',
           display: 'flex', flexDirection: 'column', justifyContent: 'flex-end', overflow: 'hidden',
-          fontFamily: '"Cascadia Mono", "Cascadia Code", Consolas, monospace', fontSize: tamanoFuente,
-          lineHeight: 1.45, whiteSpace: 'pre-wrap', wordBreak: 'break-word', color: '#e6ebf5',
+          fontFamily: FUENTE.mono, fontSize: tamanoFuente,
+          lineHeight: 1.45, whiteSpace: 'pre-wrap', wordBreak: 'break-word', color: COLOR.tinta,
         }}
       >
         {filas.map((f, i) => {
           const ultima = i === filas.length - 1;
           return (
             <div key={i} style={{minHeight: '1lh', flexShrink: 0, ...(f.cls ? ESTILO_RESALTE[f.cls] : {})}}>
-              {f.prompt !== undefined ? <span style={{color: f.promptPs ? '#4fd6e8' : '#8b7bff'}}>{f.prompt}</span> : null}
+              {f.prompt !== undefined ? <span style={{color: f.promptPs ? COLOR.gris : COLOR.azul, fontWeight: 600}}>{f.prompt}</span> : null}
               {f.html !== undefined ? <span dangerouslySetInnerHTML={{__html: f.html}} /> : null}
               {f.texto !== undefined ? (
-                <span style={f.prompt !== undefined ? {color: '#fff', fontWeight: 600} : {color: '#4ea8ff', fontWeight: 700}}>{f.texto}</span>
+                <span style={f.prompt !== undefined ? {color: COLOR.tinta, fontWeight: 600} : {color: COLOR.azul, fontWeight: 700}}>{f.texto}</span>
               ) : null}
               {ultima && (f.tecleando || parpadeo) ? <Cursor /> : null}
             </div>
@@ -114,7 +117,7 @@ const TerminalInner: React.FC<TerminalProps> = ({titulo, tamanoFuente, pasos, cu
 };
 
 const terminalSchema = {
-  titulo: {type: 'text-content', default: 'psql — devdb', description: 'Título de la ventana'},
+  titulo: {type: 'text-content', default: 'psql — devdb', description: 'Pestaña activa'},
   tamanoFuente: {type: 'number', default: 23, min: 14, max: 40, step: 1, description: 'Tamaño de letra', hiddenFromList: false},
 } as const satisfies InteractivitySchema;
 

@@ -2,7 +2,8 @@ import {Audio} from '@remotion/media';
 import {staticFile, useVideoConfig} from 'remotion';
 import {EncabezadoPaso} from '../componentes/EncabezadoPaso.tsx';
 import {Fondo} from '../componentes/Fondo.tsx';
-import {Leyenda} from '../componentes/Leyenda.tsx';
+import {NotaAlPie} from '../componentes/NotaAlPie.tsx';
+import {RielProgreso} from '../componentes/RielProgreso.tsx';
 import {Terminal} from '../componentes/Terminal.tsx';
 import {PASO6_GENERACION} from '../datos/capturas.ts';
 
@@ -12,18 +13,20 @@ export const Paso6Generacion: React.FC = () => {
   return (
     <Fondo>
       <Audio name="Voz" src={staticFile('voz/voz_paso_6.mp3')} premountFor={fps} />
-      <EncabezadoPaso name="Encabezado" premountFor={fps} insignia="6" titulo="Análisis y generación de procedimientos" subtitulo="analyze_table lee la estructura; generate_crud crea los procedures" />
+      <RielProgreso name="Riel" premountFor={fps} actual="6" />
+      <EncabezadoPaso name="Encabezado" premountFor={fps} etiqueta="Paso 6" titulo="Generar los procedimientos" subtitulo="analyze_table + generate_crud" />
       <Terminal
         name="Terminal"
         premountFor={fps}
-        titulo="crudgen — lab.producto"
+        titulo="PowerShell — crudgen"
+        otraPestana="psql — devdb"
         tamanoFuente={23}
         pasos={PASO6_GENERACION}
-        style={{left: 60, top: 180, width: 1800, height: 780}}
+        style={{left: 340, top: 220, width: 1520, height: 740}}
       />
-      <Leyenda name="Leyenda" from={36} premountFor={fps} color="#3ddc84">
-        PK, tipos y NOT NULL leídos del catálogo · 4 × success
-      </Leyenda>
+      <NotaAlPie name="Nota" from={30} premountFor={fps}>
+        Se leen PK, tipos y NOT NULL; nacen cuatro procedures sin EXECUTE para PUBLIC.
+      </NotaAlPie>
     </Fondo>
   );
 };

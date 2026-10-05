@@ -2,7 +2,8 @@ import {Audio} from '@remotion/media';
 import {staticFile, useVideoConfig} from 'remotion';
 import {EncabezadoPaso} from '../componentes/EncabezadoPaso.tsx';
 import {Fondo} from '../componentes/Fondo.tsx';
-import {Leyenda} from '../componentes/Leyenda.tsx';
+import {NotaAlPie} from '../componentes/NotaAlPie.tsx';
+import {RielProgreso} from '../componentes/RielProgreso.tsx';
 import {Terminal} from '../componentes/Terminal.tsx';
 import {PASO9_VALIDACION} from '../datos/capturas.ts';
 
@@ -12,18 +13,20 @@ export const Paso9Validacion: React.FC = () => {
   return (
     <Fondo>
       <Audio name="Voz" src={staticFile('voz/voz_paso_9.mp3')} premountFor={fps} />
-      <EncabezadoPaso name="Encabezado" premountFor={fps} insignia="9" titulo="Validación con distintos usuarios" subtitulo="El mismo CALL, distinto rol, distinto resultado" />
+      <RielProgreso name="Riel" premountFor={fps} actual="9" />
+      <EncabezadoPaso name="Encabezado" premountFor={fps} etiqueta="Paso 9" titulo="Probar con cada usuario" subtitulo="mismo CALL, distinto rol" />
       <Terminal
         name="Terminal"
         premountFor={fps}
-        titulo="psql — devdb, cambiando de rol"
+        titulo="psql — devdb"
+        otraPestana="PowerShell"
         tamanoFuente={23}
         pasos={PASO9_VALIDACION}
-        style={{left: 60, top: 180, width: 1800, height: 780}}
+        style={{left: 340, top: 220, width: 1520, height: 740}}
       />
-      <Leyenda name="Leyenda" from={36} premountFor={fps} color="#3ddc84">
-        Cada rol ejecuta solo lo que se le otorgó (42501 = permiso denegado)
-      </Leyenda>
+      <NotaAlPie name="Nota" from={30} premountFor={fps}>
+        42501: PostgreSQL negó el permiso  ·  P0002: la fila ya no existe.
+      </NotaAlPie>
     </Fondo>
   );
 };
