@@ -1,4 +1,4 @@
-FASE 1 - MODO FIXTURES - PG18 local - 2026-10-02 (CREATE EXTENSION crud_generator 1.0)
+FASE 1 - MODO FIXTURES - PG18 local - ensayo final (CREATE EXTENSION 1.0)
 
 ==> tests/fixtures/01_roles.sql
 
@@ -60,7 +60,7 @@ psql:tests/security/04_composite_matrix.sql:211: NOTICE:  MAT-C9 OK: fila inexis
 
 ==> tests/security/07_ticket_matrix.sql
 psql:tests/security/07_ticket_matrix.sql:37: NOTICE:  TIX-00 OK: id_ticket GENERATED ALWAYS + DEFAULTs en codigo/creado_en
-psql:tests/security/07_ticket_matrix.sql:61: NOTICE:  MAT-T1 OK: vendedor INSERT id_generado=2 creado_en=2026-10-04 18:15:05.754014-06
+psql:tests/security/07_ticket_matrix.sql:61: NOTICE:  MAT-T1 OK: vendedor INSERT id_generado=2 creado_en=2026-10-04 19:06:08.476278-06
 psql:tests/security/07_ticket_matrix.sql:82: NOTICE:  MAT-T2 OK: vendedor READ devuelve codigo=TIX-T2 (id=3)
 psql:tests/security/07_ticket_matrix.sql:98: NOTICE:  MAT-T3 OK: vendedor UPDATE rechazado con 42501
 psql:tests/security/07_ticket_matrix.sql:114: NOTICE:  MAT-T4 OK: vendedor DELETE rechazado con 42501
@@ -229,5 +229,3 @@ psql:tests/integration/02_demo_script.sql:30: NOTICE:  DEMO-04 OK autorizado: ve
 psql:tests/integration/02_demo_script.sql:41: NOTICE:  DEMO-05 OK no autorizado: 42501 delante del profesor
 psql:tests/integration/02_demo_script.sql:51: NOTICE:  DEMO-06 OK: administrador DELETE cierra el ciclo
 psql:tests/integration/02_demo_script.sql:61: NOTICE:  DEMO-07 RESERVADO: tabla_virgen intacta, no tocar hasta demo final
-discovery-fixtures: 18 descubiertas, 0 DEFINER, 18 INVOKER, 0 fugas PUBLIC
-RESUMEN FASE 1: 0 FAIL/FALLO inesperados (ver detalle arriba)

@@ -1,4 +1,4 @@
-FASE 2 - MODO REALES - PG18 local - 2026-10-02 (CREATE EXTENSION crud_generator 1.0)
+FASE 2 - MODO REALES - PG18 local - ensayo final (CREATE EXTENSION 1.0)
 ==> generate x5 (crud_admin)
 lab.producto_insertar success
 lab.producto_consultar success
@@ -43,14 +43,14 @@ psql:tests/security/04_composite_matrix.sql:211: NOTICE:  MAT-C9 OK: fila inexis
 
 ==> tests/security/11_ticket_real_matrix.sql
 psql:tests/security/11_ticket_real_matrix.sql:45: NOTICE:  TIXR-00 OK: id_ticket GENERATED ALWAYS + DEFAULTs en codigo/creado_en
-psql:tests/security/11_ticket_real_matrix.sql:73: NOTICE:  MAT-T1R OK: vendedor INSERT real id_generado=2 creado_en=2026-10-04 18:16:04.154889-06
+psql:tests/security/11_ticket_real_matrix.sql:73: NOTICE:  MAT-T1R OK: vendedor INSERT real id_generado=2 creado_en=2026-10-04 19:07:08.363943-06
 psql:tests/security/11_ticket_real_matrix.sql:96: NOTICE:  MAT-T2R OK: vendedor READ real devuelve codigo=TIXR-T2 (id=3)
 psql:tests/security/11_ticket_real_matrix.sql:112: NOTICE:  MAT-T3R OK: vendedor UPDATE rechazado con 42501
 psql:tests/security/11_ticket_real_matrix.sql:128: NOTICE:  MAT-T4R OK: vendedor DELETE rechazado con 42501
 psql:tests/security/11_ticket_real_matrix.sql:150: NOTICE:  MAT-T5R OK: supervisor UPDATE real funciona (id=1)
 psql:tests/security/11_ticket_real_matrix.sql:166: NOTICE:  MAT-T6R OK: supervisor DELETE rechazado con 42501
 psql:tests/security/11_ticket_real_matrix.sql:191: NOTICE:  MAT-T7R OK: administrador DELETE cierra el ciclo (P0002)
-psql:tests/security/11_ticket_real_matrix.sql:209: NOTICE:  MAT-T8R OK: DEFAULT aplicado creado_en=2026-10-04 18:16:04.160026-06
+psql:tests/security/11_ticket_real_matrix.sql:209: NOTICE:  MAT-T8R OK: DEFAULT aplicado creado_en=2026-10-04 19:07:08.368453-06
 psql:tests/security/11_ticket_real_matrix.sql:232: NOTICE:  MAT-T9R OK: DEFAULT aplicado codigo=SIN-CODIGO (id=5)
 psql:tests/security/11_ticket_real_matrix.sql:282: NOTICE:  TIXR-AUD OK: lab.ticket_insertar(text,timestamp with time zone) owner+INVOKER+search_path+PUBLIC conformes
 psql:tests/security/11_ticket_real_matrix.sql:282: NOTICE:  TIXR-AUD OK: lab.ticket_consultar(integer,text,timestamp with time zone) owner+INVOKER+search_path+PUBLIC conformes
@@ -220,3 +220,5 @@ psql:tests/integration/02_demo_script.sql:30: NOTICE:  DEMO-04 OK autorizado: ve
 psql:tests/integration/02_demo_script.sql:41: NOTICE:  DEMO-05 OK no autorizado: 42501 delante del profesor
 psql:tests/integration/02_demo_script.sql:51: NOTICE:  DEMO-06 OK: administrador DELETE cierra el ciclo
 psql:tests/integration/02_demo_script.sql:61: NOTICE:  DEMO-07 RESERVADO: tabla_virgen intacta, no tocar hasta demo final
+
+RESUMEN FASE 2: 153 OK, 0 FAIL/FALLO, 0 PSQL-EXIT!=0; pytest 293 passed; ruff limpio
