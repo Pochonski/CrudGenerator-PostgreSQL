@@ -22,7 +22,9 @@ producto, sin restos de `tabla_video_nueva`.
 
 ## 5:40–7:00 · Paso 9 — Validación de seguridad con diferentes roles
 
-En Terminal B (PowerShell):
+En Terminal B (PowerShell). Primero conectarse (`psql` no está en el PATH por
+defecto; la primera línea lo habilita solo en esa ventana). La clave se escribe
+a ciegas y no se muestra:
 
 ```powershell
 $env:Path += ";C:\Program Files\PostgreSQL\18\bin"
@@ -75,25 +77,61 @@ fila 101 queda eliminada y la base limpia.
 
 ## 7:00–8:10 · Casos especiales — PK compuesta e IDENTITY/DEFAULT
 
-Salir de psql con `\q`. En Terminal A ejecutar `crudgen` y conectarse con los
-mismos datos (servidor `127.0.0.1`, puerto `5432`, base `devdb`, usuario
-`postgres`, clave a ciegas). Responder:
+Salir de psql con `\q`. En Terminal A (PowerShell) ejecutar `crudgen` (el
+comando ya está instalado). Es interactivo: escribís lo indicado y el programa
+responde; si algo sale mal, vuelve a preguntar. Comandos exactos, en orden:
+
+```powershell
+crudgen
+```
 
 ```text
-Esquema: 2 (lab)
-Tablas: 3,6 (detalle_factura y ticket)
+Servidor [localhost]: 127.0.0.1
+Puerto [5432]:
+Base de datos: devdb
+Usuario: postgres
+Contraseña: (escribirla a ciegas, no se muestra)
+Esquema [número]: 2
+Tablas: 3,6
 Operaciones: a
+Reemplazar: s
+Roles: 2
+Permitir INSERT? [s/n]: s
+Permitir READ? [s/n]: s
+Permitir UPDATE? [s/n]: s
+Permitir DELETE? [s/n]: s
+Permitir INSERT? [s/n]: s
+Permitir READ? [s/n]: s
+Permitir UPDATE? [s/n]: s
+Permitir DELETE? [s/n]: s
+Verificar: s
+Ejecutar: n
+```
+
+Detalle de respuestas:
+
+```text
+Esquema: 2 (lab; el listado muestra crud_generator=1, lab=2, public=3)
+Tablas: 3,6 (detalle_factura y ticket; bitacora=1, catalogo_especial=2,
+  producto=4, tabla_virgen=5)
+Operaciones: a (las cuatro)
 Reemplazar: s
 ```
 
 Nota: se responde `s` en Reemplazar porque este laboratorio ya tiene las
 rutinas generadas (en una base limpia del video general sería `n`).
 
-Roles: `2` (únicamente crud_administrador). Habilitar las 8 operaciones con
-`s` (4 de detalle_factura + 4 de ticket). Ante lo nuevo responder:
+```text
+Roles: 2 (únicamente crud_administrador; el listado muestra
+  crud_admin=1, crud_administrador=2, crud_supervisor=3, crud_vendedor=4,
+  postgres=5)
+Matriz: s 8 veces (4 operaciones de detalle_factura + 4 de ticket)
+```
+
+Ante lo nuevo responder:
 
 ```text
-Verificar: s
+Verificar: s (muestra los OK en cámara)
 Ejecutar: n
 ```
 
@@ -131,18 +169,25 @@ Lo que se dice: “Ahora crearemos una tabla nueva después de que la aplicació
 ya fue desarrollada. No realizaremos ningún cambio en Python ni en la
 extensión.”
 
-Ejecutar `crudgen` nuevamente (Terminal A), seleccionar lab y mostrar que
-`tabla_video_nueva` aparece como **opción 7**. Responder:
+Ejecutar `crudgen` nuevamente (Terminal A; si pide conexión, los mismos 5 datos:
+`127.0.0.1`, Enter, `devdb`, `postgres`, clave a ciegas) y mostrar que
+`tabla_video_nueva` aparece como **opción 7** en el listado. Responder, en orden:
 
 ```text
+Esquema [número]: 2
 Tablas: 7
 Operaciones: a
 Reemplazar: n
 Roles: 2 (únicamente crud_administrador)
-Matriz: s, s, s, s
+Permitir INSERT? [s/n]: s
+Permitir READ? [s/n]: s
+Permitir UPDATE? [s/n]: s
+Permitir DELETE? [s/n]: s
 Verificar: s
 Ejecutar: n
 ```
+
+Nota: acá sí `Reemplazar: n`, porque la tabla es nueva y no hay conflicto.
 
 Lo que se dice: “La aplicación descubre inmediatamente la tabla mediante el
 catálogo de PostgreSQL.”
