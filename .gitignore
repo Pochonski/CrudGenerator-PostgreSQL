@@ -11,3 +11,11 @@ __pycache__/
 # Sistema operativo
 .DS_Store
 Thumbs.db
+
+# Video: los MP4 se regeneran con video_entrega/remotion y se entregan aparte
+video_entrega/*.mp4
+
+# Skills de Remotion (terceros, instaladas por usuario) y config local de preview
+.claude/skills/
+.claude/launch.json
+skills-lock.json

@@ -1,161 +1,166 @@
-# Plan de vídeo (§10) y demo en vivo (§11) — evidencia de funcionamiento
+# Video de evidencia (§10) y demo en vivo (§11)
 
-**Fuente:** `documento_completo.md` §10 (vídeo, 10 pasos) y §11 (demo en vivo, 10 pasos).
-**Estado:** guion actualizado al flujo Python integrado 03-10-2026 (E2E
-`armando_e2e` validado: `ApplicationFlow` real genera y aplica privilegios;
-la ejecución efectiva se demuestra con `CALL`/`PermissionProbeService`).
-La grabación es manual. Duración objetivo: 8–12 min.
+Documento único sobre el video del proyecto: qué se entrega, cómo se produjo,
+qué muestra cada escena, cómo regenerarlo y qué tener en cuenta en la demo en
+vivo. Reemplaza a los guiones de grabación anteriores (`GUION_JOSEPH_VIDEO.md`,
+`GUIN_VIDEO.md`), que se retiraron: el video ya no se graba a mano.
 
-## Escena 0 — Base limpia (30 s, off-camera preferible)
+## 1. Entregable
 
-```sql
--- 01_roles.sql + 02_schema.sql → roles crud_* + 6 tablas lab (virgen incluida).
--- Extensión instalada: CREATE EXTENSION crud_generator; (ver extension/README.md)
+| Qué | Dónde |
+|---|---|
+| Video final (Entregable 3) | `video_entrega/CrudGenerator_PostgreSQL_voz.mp4` — 1920×1080, 30 fps, H.264 + AAC, ≈5:20, narrado en español |
+| Proyecto que lo genera | `video_entrega/remotion/` (Remotion 4.0.532, React + TypeScript) |
+| Reset del laboratorio | `crud_generator_docs/reset_video_windows.ps1` |
+
+Los `.mp4` no se versionan (están en `.gitignore`): se regeneran con el proyecto
+Remotion y se entregan aparte.
+
+## 2. Cómo se produjo
+
+El video no es una grabación de pantalla: es una presentación animada generada
+por código, con el mismo estilo que el ejemplo de referencia del curso (portada,
+arquitectura, un bloque por paso del enunciado, pruebas, decisiones técnicas y
+cierre). Aun así, **todo lo que aparece en las terminales es real**:
+
+1. Se reseteó `devdb` (PostgreSQL 18 local, `127.0.0.1:5432`) con
+   `reset_video_windows.ps1`.
+2. Se ejecutó el flujo completo con `crudgen` y `psql` (04-10-2026) y se
+   capturó la salida exacta de cada paso.
+3. Esas salidas están copiadas literalmente en
+   `video_entrega/remotion/src/datos/capturas.ts`. Única adaptación: los errores
+   de `psql` se muestran sin el prefijo `psql:archivo.sql:N:` porque en pantalla
+   se presentan como sesión interactiva.
+4. La base se dejó reseteada al terminar.
+
+Las cifras del video también son reales: `pytest` → **311 passed, 5 skipped**
+(los 5 de integración requieren `CRUDGEN_TEST_POSTGRES=1`); harness SQL →
+**153 OK, 0 FAIL** (`tests/evidence/fase2_reales.log`); 16 procedures generados
+en la corrida (4 tablas × 4).
+
+La narración se generó con ElevenLabs (modelo `eleven_multilingual_v2`, voz
+premade "Eric") a partir del guion en `src/datos/narracion.ts`.
+
+## 3. Escenas (orden del video)
+
+| # | Escena | Paso §10 | Qué muestra |
+|---|---|---|---|
+| 1 | Portada | — | Título, curso, integrantes (Armando: Python + interfaz; Joyce: extensión; Joseph: seguridad, integración y pruebas) |
+| 2 | Arquitectura | — | crudgen → extensión `crud_generator` (`analyze_table`, `generate_crud`) → catálogos (`pg_namespace`, `pg_class`, `pg_attribute`, `pg_attrdef`, `pg_index`) → procedures `lab.<tabla>_insertar/_consultar/_actualizar/_eliminar` → roles con GRANT/REVOKE |
+| 3 | Instalación | 1 | `CREATE EXTENSION crud_generator;`, `GRANT USAGE … TO crud_admin`, versión 1.0 en esquema `crud_generator` |
+| 4 | Conexión y detección | 2–3 | `crudgen` se conecta a `devdb`, asume `crud_admin` y verifica extensión, versión, esquema y USAGE |
+| 5 | Esquema y tablas | 4–5 | Listados leídos del catálogo; se elige `lab`, `producto` y las 4 operaciones |
+| 6 | Generación | 6 | Estructura de `lab.producto` (PK, tipos, NOT NULL) y 4 × `success` con EXECUTE revocado de PUBLIC |
+| 7 | Casos especiales | 6 | `detalle_factura` (PK compuesta) y `ticket` (IDENTITY ALWAYS + DEFAULT) |
+| 8 | Ejecución | 7 | `CALL` reales: INSERT, READ por PK, PK compuesta, ticket con id generado |
+| 9 | Privilegios | 8 | Matriz administrador I+R+U+D / supervisor I+R+U / vendedor I+R, aplicada con GRANT/REVOKE reales |
+| 10 | Verificación | 8 | La app ejecuta cada procedure con cada rol: 12/12 OK |
+| 11 | Validación por rol | 9 | Vendedor sin UPDATE (42501), supervisor sin DELETE (42501), administrador elimina y el READ posterior da fila inexistente (P0002) |
+| 12–14 | Tabla nueva | 10 | `lab.tabla_video_nueva` creada después del desarrollo: crudgen la descubre, genera su CRUD y sus procedures funcionan (INSERT con 2 argumentos, DEFAULT `now()`), vendedor sin READ → 42501 |
+| 15 | Pruebas | — | pytest 311 passed + extracto del harness SQL (153 OK) |
+| 16–20 | Decisiones técnicas | — | SECURITY INVOKER + doble llave; REVOKE EXECUTE de PUBLIC; SQL dinámico con `%I`/`%L`; INSERT que respeta IDENTITY/DEFAULT; regeneración controlada (`procedure_conflict`, `do_replace`) y READ por PK (P0002) |
+| 21 | Cierre | — | Cifras: 311 pruebas, 153 verificaciones, 16 procedures, PostgreSQL 18 |
+
+## 4. Proyecto Remotion (`video_entrega/remotion/`)
+
+```
+src/
+  Root.tsx                 registra el video y cada escena (carpeta "Escenas")
+  VideoDemo.tsx            TransitionSeries con fundidos de 12 cuadros
+  datos/capturas.ts        salidas reales de crudgen y psql
+  datos/linea-de-tiempo.ts convierte comandos/prompts/salidas en eventos con tiempo
+  datos/narracion.ts       guion hablado, un texto por escena
+  componentes/             Terminal (tecleo animado), EncabezadoPaso, Leyenda, Fondo
+  escenas/                 una escena por archivo (Portada, Paso1Instalacion, …)
+scripts/generar-voz.ts     genera public/voz/*.mp3 con ElevenLabs
+public/voz/                21 mp3 de narración (versionados)
 ```
 
-## Paso 1 — Instalación de la extensión (§10.1)
+- **Duración**: la fija la voz. `calculateMetadata` (en `Root.tsx`) mide cada
+  mp3 con `getAudioDurationInSeconds` y cada escena dura su audio + 0,5 s.
+  Si una terminal tarda más que su narración, `Terminal` acelera el tecleo para
+  terminar 1 s antes del corte.
+- **Edición**: textos, colores y tamaños de encabezados, leyendas y decisiones
+  se editan desde Remotion Studio (componentes `Interactive.withSchema`).
+
+### Regenerar
+
+Desde `video_entrega/remotion/`:
 
 ```bash
-cd extension && make install   # o copia manual al dir de extensiones (README)
-psql -c "CREATE EXTENSION crud_generator;"
-psql -c "SELECT extname, extversion FROM pg_extension WHERE extname='crud_generator';"
+npm install
+npm run dev
 ```
-Esperado: `crud_generator | 1.0`.
 
-## Paso 2 — Conexión mediante Python (§10.2)
+Abre Remotion Studio (`http://localhost:3000`) para previsualizar.
+
+Cambiar la narración: editar `src/datos/narracion.ts`, borrar el mp3 afectado
+en `public/voz/` y ejecutar (requiere un archivo `.env`, ignorado por git, con
+`ELEVENLABS_API_KEY=...`):
 
 ```bash
-cd app && python -m crud_generator.main
-# Servidor [localhost] / Puerto / Base devdb / Usuario postgres / Contraseña ********
+node --env-file=.env scripts/generar-voz.ts
 ```
 
-Flujo REAL implementado (`application.py` + `db/connection.py`):
+Solo genera los mp3 que faltan (`--forzar` regenera todos; `--voces` lista las
+voces de la cuenta; `ELEVENLABS_VOICE_ID` cambia la voz).
 
-1. La aplicación se autentica con una cuenta PostgreSQL con `LOGIN`
-   (`crud_admin` es `NOLOGIN` en el laboratorio real, por lo que NO puede
-   usarse como usuario de autenticación directa).
-2. Esa cuenta debe poder ejecutar `SET ROLE crud_admin`. En el contenedor
-   local de desarrollo/demo se usó `postgres` (solo laboratorio/demo local;
-   NO se recomienda superusuario como modelo productivo; en otro entorno
-   puede utilizarse cualquier usuario `LOGIN` autorizado a `SET ROLE
-   crud_admin`). No se escribe ningún password en el guion.
-3. Tras conectarse, `ApplicationFlow` entra en
-   `ConnectionManager.assume_role("crud_admin")`.
-4. Bajo ese rol administrativo se ejecutan la detección/uso administrativo de
-   la extensión según el flujo, la generación CRUD y la aplicación de
-   privilegios.
-5. Al salir, `ConnectionManager` hace `RESET ROLE`.
+Renderizar el MP4 final:
 
-Ejemplo documental correcto:
-
-```text
-Servidor: localhost
-Puerto: <puerto de demo>
-Base: devdb
-Usuario: postgres   # solo laboratorio/demo local
-Contraseña: ********
-
-→ Conexión autenticada como postgres
-→ ApplicationFlow asume crud_admin internamente
-→ generación y administración continúan como crud_admin
+```bash
+npx remotion render CrudGeneratorDemo ../CrudGenerator_PostgreSQL_voz.mp4
 ```
 
-Nota: `validate()` ocurre antes del `SET ROLE`, por lo que el mensaje de
-conexión muestra el usuario autenticado (ej. `postgres`), no se afirma que
-muestre `current_user=crud_admin`.
+Cambiar una salida de terminal exige volver a capturarla de una corrida real
+(sección 2) para que el video siga mostrando solo resultados verdaderos.
 
-## Paso 3 — Detección de la extensión (§10.3)
+## 5. Demo en vivo (§11) — lo que hay que saber
 
-En la misma sesión Python: `Verificando extensión...` →
-`instalada (versión 1.0, esquema crud_generator)`.
-Contrapunto (un take de 10 s): contra una base sin extensión muestra
-`no está instalada en la base de datos actual` (estado NOT_INSTALLED).
+El enunciado pide hacerlo **solo con la aplicación Python**: conectar, detectar
+la extensión, elegir esquema/tablas, generar, mostrar procedures, elegir roles,
+asignar privilegios, comprobarlos y operar con los procedures. `crudgen` cubre
+todo: los pasos `Verificar` (ejecuta cada procedure como cada rol) y `Ejecutar`
+(CALL con valores) resuelven §11.9 y §11.10 sin `psql`.
 
-## Paso 4 — Selección del esquema (§10.4)
+Antes de empezar:
 
-CLI lista esquemas (`CatalogService.list_schemas`, sin `pg_catalog` ni
-`information_schema`) → elegir `lab`.
-
-## Paso 5 — Selección de tablas (§10.5)
-
-CLI lista tablas (`relkind r/p`) → mostrar una / varias / todas (`a`).
-
-## Paso 6 — Generación de procedimientos (§10.6)
-
-Desde la CLI Python real (`ApplicationFlow`):
-
-- Selección de operaciones (`INSERT, READ, UPDATE, DELETE`, `a` todas).
-- Elección `do_replace` (`n` en creación fresca).
-- Por tabla: metadata real de `analyze_table` mostrada en CLI.
-- `generate_crud` real → `4 × success` por tabla (ej. `lab.producto`,
-  `detalle_factura` con PK compuesta, `ticket` con identity).
-
-Nota histórica: hasta el 02-10 este paso se mostraba vía `psql` directo
-(`SELECT ... generate_crud(...)` con `SET ROLE crud_admin`); desde el
-03-10 se graba desde la CLI Python integrada.
-
-## Paso 7 — Ejecución de los procedimientos (§10.7)
-
-La aplicación interactiva NO pide valores CRUD ni ejecuta los procedures
-generados (administra generación y privilegios). La ejecución efectiva se
-demuestra con `CALL` real (vía `psql` o `PermissionProbeService` con
-rollback):
-
-```sql
-SET ROLE crud_vendedor;
-CALL lab.producto_insertar(101, 'Teclado', 25.50);
--- READ por PK (INOUT ⇒ variable en DO, literal en cliente):
---   psql: CALL lab.producto_consultar(101, NULL, NULL); → (101,'Teclado',25.50)
-RESET ROLE;
--- Evidencia guardada: MAT-01..07 7/7, MAT-C1..C9 9/9, TIXR, S-AUDR.
+```powershell
+$env:PGPASSWORD = '<clave del laboratorio>'
+powershell -ExecutionPolicy Bypass -File crud_generator_docs\reset_video_windows.ps1
 ```
 
-## Paso 8 — Asignación de privilegios (§10.8)
+Deja `lab` con 6 tablas, sin rutinas y **sin** la extensión (instalarla es parte
+de la demo: `CREATE EXTENSION crud_generator;` + `GRANT USAGE ON SCHEMA
+crud_generator TO crud_admin;`).
 
-Desde la CLI Python real (`ApplicationFlow` → `PrivilegeService.apply_matrix`):
+Comportamiento real de `crudgen` (verificado en la corrida del video; los
+guiones viejos lo describían mal):
 
-- Selección de roles (ej. `crud_vendedor`, `crud_supervisor`,
-  `crud_administrador`).
-- Matriz por tabla (preguntas `Permitir <OP>? [s/n]` por cada `SUCCESS` × rol).
-- Doble llave INVOKER aplicada (ADR-011): `EXECUTE` + permiso de tabla +
-  `USAGE ON SCHEMA`.
+- **La matriz se pregunta por operación, no por rol**: primero `Permitir
+  INSERT?` para cada rol elegido, luego READ, UPDATE y DELETE. Para la matriz
+  administrador/supervisor/vendedor (roles `2,3,4`) las 12 respuestas son:
+  `s s s` · `s s s` · `s s n` · `s n n`.
+- **Con varias tablas, todo se repite por tabla**: `Roles`, la matriz,
+  `Verificar` y `Ejecutar` se preguntan una vez por cada tabla generada.
+- La numeración sale del catálogo en orden alfabético: esquemas
+  `crud_generator=1, lab=2, public=3`; tablas `bitacora=1, catalogo_especial=2,
+  detalle_factura=3, producto=4, tabla_virgen=5, ticket=6`; roles
+  `crud_admin=1, crud_administrador=2, crud_supervisor=3, crud_vendedor=4,
+  postgres=5`. Una tabla nueva se intercala alfabéticamente (por ejemplo
+  `tabla_video_nueva` queda como 5): **elegir siempre por nombre**.
+- `Reemplazar: n` en una base recién reseteada; si un procedure ya existe la
+  extensión responde `procedure_conflict` (no es un error del programa).
+- Resultados esperados: permiso denegado = **42501**; READ de una fila
+  inexistente = **P0002**.
 
-Equivalente SQL (referencia, no grabación principal):
+Detalles que pueden sorprender:
 
-```sql
--- Doble llave INVOKER (ADR-011): EXECUTE + permiso de tabla.
-GRANT EXECUTE ON PROCEDURE lab.producto_insertar(integer,text,numeric) TO crud_vendedor;
-GRANT SELECT, INSERT ON lab.producto TO crud_vendedor;
--- Matriz completa: vendedor I+R / supervisor I+R+U / administrador I+R+U+D
--- (04_grants.sql + grants reales del handoff §2.4).
-```
-
-## Paso 9 — Validación con diferentes usuarios (§10.9)
-
-Con `CALL` real o `PermissionProbeService` (la CLI interactiva no ejecuta
-CRUD; solo administra generación y privilegios):
-
-```sql
-SET ROLE crud_vendedor;      CALL lab.producto_eliminar(101);  -- ERROR 42501
-SET ROLE crud_administrador; CALL lab.producto_eliminar(101);  -- OK + P0002 al re-consultar
-```
-Evidencia: NEG-01..11, REV-01 (REVOKE→GRANT con vecinos intactos), PUB-01/02.
-
-## Paso 10 — Tablas no usadas en desarrollo (§10.10 / §11 tabla del docente)
-
-Transcript real 02-10 (VIR-00..06, PG18): `tabla_virgen(id, nota)` pasó de
-0 rutinas → `generate_crud` 4×success → INSERT+READ vendedor OK → DELETE 42501
-→ ciclo admin OK/P0002 → DROP + virgen restaurada (0 rutinas, 0 filas).
-En vivo el docente aporta su tabla: repetir VIR-01..05 con su nombre.
-
-## Checklist pre-grabación
-
-- [ ] Base demo fresca (roles+schema+extensión, sin datos de prueba).
-- [ ] `app/` corriendo con cuenta `LOGIN` de demo capaz de `SET ROLE
-  crud_admin`; `ApplicationFlow` realiza la asunción del rol administrativo
-  internamente (pasos 2-6 y 8 desde la CLI, sin `psql` para generar ni para
-  grants).
-- [ ] `psql` / `PermissionProbeService` listo para pasos 7 y 9 (ejecución
-  efectiva con `CALL` real; la CLI no pide valores CRUD).
-- [ ] Transcript virgen a mano por si piden la tabla desconocida.
-- [ ] Confirmar con el docente formato de entrega del vídeo (ADR-014: fecha 04-10-2026).
+- Si `detalle_factura` referencia un producto, el DELETE de ese producto falla
+  por la llave foránea (correcto en PostgreSQL). Para mostrar el ciclo de
+  borrado, usar un producto sin detalle.
+- `Verificar` ejecuta las operaciones dentro de una transacción que se
+  revierte, pero las secuencias IDENTITY no retroceden: el primer `ticket`
+  insertado después puede recibir id 2 en vez de 1.
+- La tabla del docente: crear la tabla (por ejemplo `SET ROLE crud_admin;
+  CREATE TABLE lab.<nombre> (…);`), volver a `crudgen` y elegirla por nombre;
+  no hace falta tocar Python ni la extensión.
